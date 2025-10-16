@@ -129,6 +129,13 @@ function PlaylistsPage() {
           {musicPlaylists?.map((playlist) => (
             <div key={playlist._id} className="playlist-card">
               <Link to={`/playlists/${playlist._id}`} className="playlist-link">
+                <div className="playlist-thumbnail">
+                  {playlist.songs[0]?.thumbnail ? (
+                    <img src={playlist.songs[0].thumbnail} alt={playlist.name} />
+                  ) : (
+                    <div className="placeholder-thumbnail">🎵</div>
+                  )}
+                </div>
                 <h3>{playlist.name}</h3>
                 {playlist.description && <p>{playlist.description}</p>}
                 <div className="playlist-info">
@@ -194,6 +201,13 @@ function PlaylistsPage() {
           {youtubePlaylists?.map((playlist) => (
             <div key={playlist._id} className="playlist-card">
               <Link to={`/youtube/playlists/${playlist._id}`} className="playlist-link">
+                <div className="playlist-thumbnail">
+                  {playlist.videos[0]?.thumbnail ? (
+                    <img src={playlist.videos[0].thumbnail} alt={playlist.name} />
+                  ) : (
+                    <div className="placeholder-thumbnail">▶️</div>
+                  )}
+                </div>
                 <h3>{playlist.name}</h3>
                 {playlist.description && <p>{playlist.description}</p>}
                 <div className="playlist-info">
