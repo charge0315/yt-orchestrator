@@ -230,5 +230,11 @@ export const youtubeApi = {
     apiClient.post('/youtube/playlists', data),
   updatePlaylist: (playlistId: string, data: { name: string; description?: string }) =>
     apiClient.put(`/youtube/playlists/${playlistId}`, data),
-  deletePlaylist: (playlistId: string) => apiClient.delete(`/youtube/playlists/${playlistId}`)
+  deletePlaylist: (playlistId: string) => apiClient.delete(`/youtube/playlists/${playlistId}`),
+  addVideo: (playlistId: string, videoId: string) =>
+    apiClient.post(`/youtube/playlists/${playlistId}/videos`, { videoId }),
+  removeVideo: (playlistId: string, videoId: string) =>
+    apiClient.delete(`/youtube/playlists/${playlistId}/videos/${videoId}`),
+  searchVideos: (query: string, maxResults?: number) =>
+    apiClient.get('/youtube/search', { params: { query, maxResults } })
 }

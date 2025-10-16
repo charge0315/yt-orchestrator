@@ -5,28 +5,36 @@ import { authenticate, AuthRequest } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// OAuth2 client setup
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.FRONTEND_URL || 'http://localhost:5173'}/youtube/callback`
-);
-
 // Scopes for YouTube Data API
 const SCOPES = [
   'https://www.googleapis.com/auth/youtube.readonly',
   'https://www.googleapis.com/auth/youtube.force-ssl'
 ];
 
+// Helper function to create OAuth2 client
+function getOAuth2Client() {
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    `${process.env.FRONTEND_URL || 'http://localhost:5173'}/youtube/callback`
+  );
+}
+
 // Get YouTube OAuth URL
 router.get('/auth/url', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    console.log('Generating YouTube OAuth URL...');
+    console.log('Client ID:', process.env.GOOGLE_CLIENT_ID);
+    console.log('Redirect URI:', `${process.env.FRONTEND_URL || 'http://localhost:5173'}/youtube/callback`);
+
+    const oauth2Client = getOAuth2Client();
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: SCOPES,
       state: req.userId // Pass user ID in state for callback
     });
 
+    console.log('Generated auth URL:', authUrl);
     res.json({ url: authUrl });
   } catch (error) {
     console.error('Error generating auth URL:', error);
@@ -44,6 +52,7 @@ router.post('/auth/callback', authenticate, async (req: AuthRequest, res: Respon
     }
 
     // Exchange code for tokens
+    const oauth2Client = getOAuth2Client();
     const { tokens } = await oauth2Client.getToken(code);
 
     if (!tokens.access_token) {
@@ -103,6 +112,7 @@ async function getValidAccessToken(userId: string): Promise<string> {
       throw new Error('YouTube token expired and no refresh token available');
     }
 
+    const oauth2Client = getOAuth2Client();
     oauth2Client.setCredentials({
       refresh_token: user.youtubeRefreshToken
     });
@@ -124,6 +134,7 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
   try {
     const accessToken = await getValidAccessToken(req.userId!);
 
+    const oauth2Client = getOAuth2Client();
     oauth2Client.setCredentials({ access_token: accessToken });
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
@@ -163,6 +174,7 @@ router.get('/playlists/:id/items', authenticate, async (req: AuthRequest, res: R
   try {
     const accessToken = await getValidAccessToken(req.userId!);
 
+    const oauth2Client = getOAuth2Client();
     oauth2Client.setCredentials({ access_token: accessToken });
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
@@ -204,6 +216,7 @@ router.post('/playlists', authenticate, async (req: AuthRequest, res: Response) 
 
     const accessToken = await getValidAccessToken(req.userId!);
 
+    const oauth2Client = getOAuth2Client();
     oauth2Client.setCredentials({ access_token: accessToken });
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
@@ -240,6 +253,7 @@ router.delete('/playlists/:id', authenticate, async (req: AuthRequest, res: Resp
   try {
     const accessToken = await getValidAccessToken(req.userId!);
 
+    const oauth2Client = getOAuth2Client();
     oauth2Client.setCredentials({ access_token: accessToken });
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
@@ -260,6 +274,7 @@ router.put('/playlists/:id', authenticate, async (req: AuthRequest, res: Respons
     const { name, description } = req.body;
     const accessToken = await getValidAccessToken(req.userId!);
 
+    const oauth2Client = getOAuth2Client();
     oauth2Client.setCredentials({ access_token: accessToken });
     const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
 
@@ -284,6 +299,140 @@ router.put('/playlists/:id', authenticate, async (req: AuthRequest, res: Respons
   } catch (error) {
     console.error('Error updating playlist:', error);
     res.status(500).json({ error: 'Failed to update playlist' });
+  }
+});
+
+// Add a video to a playlist
+router.post('/playlists/:id/videos', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { videoId } = req.body;
+
+    if (!videoId) {
+      return res.status(400).json({ error: 'Video ID is required' });
+    }
+
+    const accessToken = await getValidAccessToken(req.userId!);
+
+    const oauth2Client = getOAuth2Client();
+    oauth2Client.setCredentials({ access_token: accessToken });
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+
+    await youtube.playlistItems.insert({
+      part: ['snippet'],
+      requestBody: {
+        snippet: {
+          playlistId: req.params.id,
+          resourceId: {
+            kind: 'youtube#video',
+            videoId: videoId
+          }
+        }
+      }
+    });
+
+    res.status(201).json({ message: 'Video added to playlist successfully' });
+  } catch (error) {
+    console.error('Error adding video to playlist:', error);
+    res.status(500).json({ error: 'Failed to add video to playlist' });
+  }
+});
+
+// Remove a video from a playlist
+router.delete('/playlists/:playlistId/videos/:videoId', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { playlistId, videoId } = req.params;
+
+    const accessToken = await getValidAccessToken(req.userId!);
+
+    const oauth2Client = getOAuth2Client();
+    oauth2Client.setCredentials({ access_token: accessToken });
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+
+    // First, we need to find the playlistItem ID for this video
+    const listResponse = await youtube.playlistItems.list({
+      part: ['id', 'contentDetails'],
+      playlistId: playlistId,
+      maxResults: 50
+    });
+
+    const items = listResponse.data.items || [];
+    const playlistItem = items.find(item => item.contentDetails?.videoId === videoId);
+
+    if (!playlistItem || !playlistItem.id) {
+      return res.status(404).json({ error: 'Video not found in playlist' });
+    }
+
+    await youtube.playlistItems.delete({
+      id: playlistItem.id
+    });
+
+    res.json({ message: 'Video removed from playlist successfully' });
+  } catch (error) {
+    console.error('Error removing video from playlist:', error);
+    res.status(500).json({ error: 'Failed to remove video from playlist' });
+  }
+});
+
+// Search for videos
+router.get('/search', authenticate, async (req: AuthRequest, res: Response) => {
+  try {
+    const { query, maxResults = 20 } = req.query;
+
+    if (!query || typeof query !== 'string') {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    const accessToken = await getValidAccessToken(req.userId!);
+
+    const oauth2Client = getOAuth2Client();
+    oauth2Client.setCredentials({ access_token: accessToken });
+    const youtube = google.youtube({ version: 'v3', auth: oauth2Client });
+
+    const response = await youtube.search.list({
+      part: ['snippet'],
+      q: query,
+      type: ['video'],
+      maxResults: Number(maxResults),
+      videoEmbeddable: 'true'
+    });
+
+    const videos = response.data.items || [];
+
+    // Get video details to include duration
+    const videoIds = videos.map(v => v.id?.videoId).filter(Boolean);
+
+    let videosWithDetails = videos.map(video => ({
+      videoId: video.id?.videoId || '',
+      title: video.snippet?.title || '',
+      channelTitle: video.snippet?.channelTitle || '',
+      thumbnail: video.snippet?.thumbnails?.high?.url ||
+                 video.snippet?.thumbnails?.medium?.url ||
+                 video.snippet?.thumbnails?.default?.url,
+      publishedAt: video.snippet?.publishedAt
+    }));
+
+    // If we have video IDs, get additional details like duration
+    if (videoIds.length > 0) {
+      const detailsResponse = await youtube.videos.list({
+        part: ['contentDetails'],
+        id: videoIds as string[]
+      });
+
+      const details = detailsResponse.data.items || [];
+
+      videosWithDetails = videosWithDetails.map(video => {
+        const detail = details.find(d => d.id === video.videoId);
+        return {
+          ...video,
+          duration: detail?.contentDetails?.duration
+        };
+      });
+    }
+
+    res.json(videosWithDetails);
+  } catch (error) {
+    console.error('Error searching videos:', error);
+    res.status(500).json({ error: 'Failed to search videos' });
   }
 });
 

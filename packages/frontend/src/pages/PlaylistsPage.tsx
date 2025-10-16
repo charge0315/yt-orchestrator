@@ -134,9 +134,9 @@ function PlaylistsPage() {
   return (
     <div className="playlists-page">
       <div className="page-header">
-        <h1>YouTube プレイリスト</h1>
+        <h1>🎵 YouTube Music プレイリスト</h1>
         <button
-          className="create-button"
+          className="create-button music-theme"
           onClick={() => setIsCreating(!isCreating)}
         >
           {isCreating ? 'キャンセル' : '+ 新規作成'}
@@ -144,7 +144,7 @@ function PlaylistsPage() {
       </div>
 
       {isCreating && (
-        <form className="create-form" onSubmit={handleCreate}>
+        <form className="create-form music-theme" onSubmit={handleCreate}>
           <input
             type="text"
             placeholder="プレイリスト名"
@@ -159,7 +159,7 @@ function PlaylistsPage() {
             onChange={(e) => setNewPlaylistDesc(e.target.value)}
             className="form-textarea"
           />
-          <button type="submit" className="submit-button">
+          <button type="submit" className="submit-button music-theme">
             作成
           </button>
         </form>
@@ -167,23 +167,24 @@ function PlaylistsPage() {
 
       <div className="playlists-grid">
         {playlists?.map((playlist: any) => (
-          <div key={playlist._id} className="playlist-card">
+          <div key={playlist._id} className="playlist-card music-theme">
             <Link to={`/playlists/${playlist._id}`} className="playlist-link">
-              <div className="playlist-thumbnail">
+              <div className="playlist-thumbnail music-theme">
                 {playlist.thumbnail ? (
                   <img src={playlist.thumbnail} alt={playlist.name} />
                 ) : (
-                  <div className="placeholder-thumbnail">🎵</div>
+                  <div className="placeholder-thumbnail music-theme">🎵</div>
                 )}
+                <div className="music-overlay">🎵</div>
               </div>
               <h3>{playlist.name}</h3>
               {playlist.description && <p>{playlist.description}</p>}
               <div className="playlist-info">
-                <span>{playlist.itemCount || 0} 動画</span>
+                <span>🎧 {playlist.itemCount || 0} 曲</span>
               </div>
             </Link>
             <button
-              className="delete-button"
+              className="delete-button music-theme"
               onClick={() => {
                 if (confirm('このプレイリストを削除しますか?')) {
                   deleteMutation.mutate(playlist._id)
@@ -198,7 +199,9 @@ function PlaylistsPage() {
 
       {playlists?.length === 0 && !isCreating && (
         <div className="empty-state">
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>🎵</div>
           <p>プレイリストがありません</p>
+          <p>「+ 新規作成」をクリックして最初のプレイリストを作成しましょう</p>
         </div>
       )}
     </div>
