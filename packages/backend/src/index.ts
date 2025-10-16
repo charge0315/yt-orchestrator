@@ -14,6 +14,7 @@ import authRoutes from './routes/auth.js';
 import youtubePlaylistRoutes from './routes/youtubePlaylists.js';
 import youtubeChannelRoutes from './routes/youtubeChannels.js';
 import youtubeRecommendationRoutes from './routes/youtubeRecommendations.js';
+import youtubeRoutes from './routes/youtube.js';
 
 dotenv.config();
 
@@ -70,6 +71,7 @@ app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/youtube/playlists', youtubePlaylistRoutes);
 app.use('/api/youtube/channels', youtubeChannelRoutes);
 app.use('/api/youtube/recommendations', youtubeRecommendationRoutes);
+app.use('/api/youtube', youtubeRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

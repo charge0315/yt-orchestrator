@@ -7,6 +7,9 @@ export interface IUser extends Document {
   name: string;
   googleId?: string;
   picture?: string;
+  youtubeAccessToken?: string;
+  youtubeRefreshToken?: string;
+  youtubeTokenExpiry?: Date;
   createdAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
@@ -36,6 +39,15 @@ const UserSchema = new Schema<IUser>({
   },
   picture: {
     type: String
+  },
+  youtubeAccessToken: {
+    type: String
+  },
+  youtubeRefreshToken: {
+    type: String
+  },
+  youtubeTokenExpiry: {
+    type: Date
   },
   createdAt: {
     type: Date,
