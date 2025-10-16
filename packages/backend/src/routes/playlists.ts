@@ -1,12 +1,16 @@
-import express, { Request, Response } from 'express';
+import express, { Response } from 'express';
 import Playlist from '../models/Playlist.js';
+import { authenticate, AuthRequest } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get all playlists
-router.get('/', async (req: Request, res: Response) => {
+// Protect all routes with authentication
+router.use(authenticate);
+
+// Get all playlists for the authenticated user
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const playlists = await Playlist.find().sort({ updatedAt: -1 });
+    const playlists = await Playlist.find({ userId: req.userId }).sort({ updatedAt: -1 });
     res.json(playlists);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch playlists' });
@@ -14,9 +18,12 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // Get a single playlist by ID
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const playlist = await Playlist.findById(req.params.id);
+    const playlist = await Playlist.findOne({
+      _id: req.params.id,
+      userId: req.userId
+    });
     if (!playlist) {
       return res.status(404).json({ error: 'Playlist not found' });
     }
@@ -27,13 +34,14 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 // Create a new playlist
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   try {
     const { name, description } = req.body;
     const playlist = new Playlist({
       name,
       description,
-      songs: []
+      songs: [],
+      userId: req.userId
     });
     await playlist.save();
     res.status(201).json(playlist);
@@ -43,11 +51,11 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 // Update playlist
-router.put('/:id', async (req: Request, res: Response) => {
+router.put('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { name, description } = req.body;
-    const playlist = await Playlist.findByIdAndUpdate(
-      req.params.id,
+    const playlist = await Playlist.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
       { name, description },
       { new: true }
     );
@@ -61,9 +69,12 @@ router.put('/:id', async (req: Request, res: Response) => {
 });
 
 // Delete a playlist
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const playlist = await Playlist.findByIdAndDelete(req.params.id);
+    const playlist = await Playlist.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.userId
+    });
     if (!playlist) {
       return res.status(404).json({ error: 'Playlist not found' });
     }
@@ -74,10 +85,13 @@ router.delete('/:id', async (req: Request, res: Response) => {
 });
 
 // Add a song to playlist
-router.post('/:id/songs', async (req: Request, res: Response) => {
+router.post('/:id/songs', async (req: AuthRequest, res: Response) => {
   try {
     const { videoId, title, artist, duration, thumbnail } = req.body;
-    const playlist = await Playlist.findById(req.params.id);
+    const playlist = await Playlist.findOne({
+      _id: req.params.id,
+      userId: req.userId
+    });
 
     if (!playlist) {
       return res.status(404).json({ error: 'Playlist not found' });
@@ -100,9 +114,12 @@ router.post('/:id/songs', async (req: Request, res: Response) => {
 });
 
 // Remove a song from playlist
-router.delete('/:id/songs/:videoId', async (req: Request, res: Response) => {
+router.delete('/:id/songs/:videoId', async (req: AuthRequest, res: Response) => {
   try {
-    const playlist = await Playlist.findById(req.params.id);
+    const playlist = await Playlist.findOne({
+      _id: req.params.id,
+      userId: req.userId
+    });
 
     if (!playlist) {
       return res.status(404).json({ error: 'Playlist not found' });

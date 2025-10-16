@@ -73,11 +73,12 @@ async function searchYouTubeMusicPlaylists() {
         addedAt: new Date()
       }));
 
-      // データベースに保存
+      // データベースに保存（ユーザーIDを付与）
       const newPlaylist = new Playlist({
         name: playlist.snippet.title,
         description: playlist.snippet.description,
-        songs: songs
+        songs: songs,
+        userId: USER_ID
       });
 
       await newPlaylist.save();

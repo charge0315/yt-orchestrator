@@ -13,6 +13,7 @@ export interface IPlaylist extends Document {
   name: string;
   description?: string;
   songs: ISong[];
+  userId: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +31,7 @@ const PlaylistSchema = new Schema<IPlaylist>({
   name: { type: String, required: true },
   description: { type: String },
   songs: [SongSchema],
+  userId: { type: String, required: true },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });

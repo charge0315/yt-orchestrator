@@ -24,6 +24,7 @@ export interface Playlist {
   name: string
   description?: string
   songs: Song[]
+  userId: string
   createdAt: Date
   updatedAt: Date
 }
