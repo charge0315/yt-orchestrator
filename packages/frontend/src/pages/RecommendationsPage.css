@@ -1,0 +1,81 @@
+.recommendations-page {
+  max-width: 1200px;
+}
+
+.recommendations-page h1 {
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  font-size: 16px;
+  color: #aaa;
+  margin-bottom: 32px;
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recommendation-card {
+  background-color: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.recommendation-card:hover {
+  transform: translateX(8px);
+  border-color: #ff0000;
+}
+
+.recommendation-card img {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.rec-info {
+  flex: 1;
+}
+
+.rec-info h3 {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.artist {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.reason {
+  font-size: 14px;
+  color: #888;
+  font-style: italic;
+}
+
+.duration {
+  color: #888;
+  font-size: 14px;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 64px 32px;
+  color: #888;
+  background-color: #1a1a1a;
+  border-radius: 12px;
+}
+
+.empty-state p {
+  margin-bottom: 8px;
+}

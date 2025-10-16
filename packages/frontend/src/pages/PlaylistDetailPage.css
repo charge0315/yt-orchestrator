@@ -1,0 +1,111 @@
+.playlist-detail-page {
+  max-width: 1200px;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 24px;
+  color: #aaa;
+  font-size: 14px;
+}
+
+.back-link:hover {
+  color: #ffffff;
+}
+
+.playlist-header {
+  margin-bottom: 32px;
+}
+
+.playlist-header h1 {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.description {
+  color: #aaa;
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+
+.stats {
+  font-size: 14px;
+  color: #888;
+}
+
+.songs-list {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.song-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #2a2a2a;
+  gap: 16px;
+  transition: background-color 0.2s;
+}
+
+.song-item:hover {
+  background-color: #2a2a2a;
+}
+
+.song-item:last-child {
+  border-bottom: none;
+}
+
+.song-number {
+  width: 32px;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+}
+
+.song-thumbnail {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.song-info {
+  flex: 1;
+}
+
+.song-title {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.song-artist {
+  font-size: 14px;
+  color: #aaa;
+}
+
+.song-duration {
+  color: #888;
+  font-size: 14px;
+}
+
+.remove-button {
+  padding: 8px 16px;
+  background-color: transparent;
+  color: #ff4444;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.remove-button:hover {
+  background-color: #2a2a2a;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 64px 32px;
+  color: #888;
+  background-color: #1a1a1a;
+  border-radius: 12px;
+}

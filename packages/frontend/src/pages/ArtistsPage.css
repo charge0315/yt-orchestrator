@@ -1,0 +1,75 @@
+.artists-page {
+  max-width: 1200px;
+}
+
+.artists-page h1 {
+  font-size: 36px;
+  margin-bottom: 32px;
+}
+
+.section {
+  margin-bottom: 48px;
+}
+
+.section h2 {
+  font-size: 24px;
+  margin-bottom: 24px;
+  color: #ff0000;
+}
+
+.releases-grid,
+.artists-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 24px;
+}
+
+.release-card,
+.artist-card {
+  background-color: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  padding: 16px;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.release-card:hover,
+.artist-card:hover {
+  transform: translateY(-4px);
+  border-color: #ff0000;
+}
+
+.release-card img,
+.artist-card img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.release-card h3,
+.artist-card h3 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.release-card p,
+.artist-card p {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.release-date {
+  font-size: 12px;
+  color: #888;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 64px 32px;
+  color: #888;
+  background-color: #1a1a1a;
+  border-radius: 12px;
+}

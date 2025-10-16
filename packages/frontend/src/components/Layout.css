@@ -1,0 +1,117 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 240px;
+  background-color: #1a1a1a;
+  padding: 24px 16px;
+  border-right: 1px solid #2a2a2a;
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  margin-bottom: 32px;
+}
+
+.logo h1 {
+  font-size: 24px;
+  color: #ff0000;
+  margin-bottom: 4px;
+}
+
+.logo p {
+  font-size: 14px;
+  color: #888;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.nav-section {
+  margin: 8px 0;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 16px 4px;
+  margin-bottom: 4px;
+}
+
+.nav-link {
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: #ffffff;
+  transition: background-color 0.2s;
+  display: block;
+}
+
+.nav-link:hover {
+  background-color: #2a2a2a;
+  text-decoration: none;
+}
+
+.nav-link.active {
+  background-color: #ff0000;
+  color: #ffffff;
+}
+
+.main-content {
+  margin-left: 240px;
+  flex: 1;
+  padding: 32px;
+  max-width: 1400px;
+}
+
+.user-section {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #2a2a2a;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 8px;
+}
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.user-email {
+  font-size: 12px;
+  color: #888;
+}
+
+.logout-button {
+  width: 100%;
+  padding: 10px;
+  background-color: #2a2a2a;
+  color: #ff4444;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.logout-button:hover {
+  background-color: #3a3a3a;
+}
