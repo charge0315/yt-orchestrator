@@ -214,3 +214,21 @@ export const youtubeRecommendationsApi = {
   getChannels: () => apiClient.get<ChannelRecommendation[]>('/youtube/recommendations/channels'),
   getVideos: () => apiClient.get<LatestVideo[]>('/youtube/recommendations/videos')
 }
+
+// YouTube OAuth API
+export const youtubeOAuthApi = {
+  getAuthUrl: () => apiClient.get<{ url: string }>('/youtube/auth/url'),
+  handleCallback: (code: string) => apiClient.post('/youtube/auth/callback', { code }),
+  getStatus: () => apiClient.get<{ connected: boolean; expiresAt?: Date }>('/youtube/auth/status')
+}
+
+// YouTube API (direct from YouTube, not MongoDB)
+export const youtubeApi = {
+  getPlaylists: () => apiClient.get('/youtube/playlists'),
+  getPlaylistItems: (playlistId: string) => apiClient.get(`/youtube/playlists/${playlistId}/items`),
+  createPlaylist: (data: { name: string; description?: string; privacy?: string }) =>
+    apiClient.post('/youtube/playlists', data),
+  updatePlaylist: (playlistId: string, data: { name: string; description?: string }) =>
+    apiClient.put(`/youtube/playlists/${playlistId}`, data),
+  deletePlaylist: (playlistId: string) => apiClient.delete(`/youtube/playlists/${playlistId}`)
+}

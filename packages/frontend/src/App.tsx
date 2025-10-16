@@ -8,6 +8,7 @@ import ArtistsPage from './pages/ArtistsPage'
 import ChannelsPage from './pages/ChannelsPage'
 import RecommendationsPage from './pages/RecommendationsPage'
 import YouTubePlaylistsPage from './pages/YouTubePlaylistsPage'
+import YouTubeCallbackPage from './pages/YouTubeCallbackPage'
 import LoginPage from './pages/LoginPage'
 
 function App() {
@@ -46,6 +47,7 @@ function App() {
         <Route path="/channels" element={<ChannelsPage />} />
         <Route path="/recommendations" element={<RecommendationsPage />} />
         <Route path="/youtube/playlists" element={<YouTubePlaylistsPage />} />
+        <Route path="/youtube/callback" element={<YouTubeCallbackPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
