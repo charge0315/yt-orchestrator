@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { youtubeDataApi, channelsApi } from '../api/client'
+import VideoPlayer from '../components/VideoPlayer'
 import './ChannelsPage.css'
 
 function ChannelsPage() {
@@ -9,6 +10,7 @@ function ChannelsPage() {
   const [channels, setChannels] = useState<any[]>([])
   const [channelVideos, setChannelVideos] = useState<{[key: string]: any[]}>({})
   const [isLoading, setIsLoading] = useState(true)
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
 
   useEffect(() => {
     loadChannels()
@@ -84,8 +86,21 @@ function ChannelsPage() {
     }
   }
 
+  const handleChannelClick = (channel: any) => {
+    const latestVideo = channelVideos[channel.id]?.[0]
+    if (latestVideo) {
+      const videoId = latestVideo.id?.videoId || latestVideo.videoId
+      if (videoId) {
+        setPlayingVideoId(videoId)
+      }
+    }
+  }
+
   return (
     <div className="channels-page">
+      {/* 動画プレイヤーモーダル */}
+      <VideoPlayer videoId={playingVideoId} onClose={() => setPlayingVideoId(null)} />
+
       <div className="page-header">
         <h1>▶️ YouTube チャンネル</h1>
       </div>
@@ -169,25 +184,43 @@ function ChannelsPage() {
                                latestVideo?.snippet?.thumbnails?.default?.url ||
                                channel.snippet?.thumbnails?.default?.url
               return (
-                <div key={channel.id} className="channel-card">
+                <div key={channel.id} className="channel-card" style={{ cursor: 'pointer' }}>
                   {thumbnail && (
-                    <img src={thumbnail} alt={channel.snippet?.title} />
+                    <img
+                      src={thumbnail}
+                      alt={channel.snippet?.title}
+                      onClick={() => handleChannelClick(channel)}
+                    />
                   )}
                   <div className="channel-info">
-                    <h3>{channel.snippet?.title}</h3>
-                    <button
-                      onClick={() => handleUnsubscribe(channel.id)}
-                      style={{
-                        padding: '8px 16px',
-                        backgroundColor: '#2a2a2a',
-                        color: '#ff4444',
-                        borderRadius: '6px',
-                        fontSize: '14px',
-                        marginTop: '8px'
-                      }}
-                    >
-                      登録解除
-                    </button>
+                    <h3 onClick={() => handleChannelClick(channel)}>{channel.snippet?.title}</h3>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                      <button
+                        onClick={() => handleChannelClick(channel)}
+                        style={{
+                          flex: 1,
+                          padding: '8px 16px',
+                          backgroundColor: '#ff0000',
+                          color: '#ffffff',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      >
+                        ▶️ 再生
+                      </button>
+                      <button
+                        onClick={() => handleUnsubscribe(channel.id)}
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: '#2a2a2a',
+                          color: '#ff4444',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      >
+                        登録解除
+                      </button>
+                    </div>
                   </div>
                 </div>
               )

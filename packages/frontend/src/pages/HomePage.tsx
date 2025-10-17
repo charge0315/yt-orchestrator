@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { channelsApi, playlistsApi, artistsApi, ytmusicApi, youtubeDataApi, recommendationsApi } from '../api/client'
 import SkeletonLoader from '../components/SkeletonLoader'
+import VideoPlayer from '../components/VideoPlayer'
 import './HomePage.css'
 
 function HomePage() {
@@ -35,6 +36,9 @@ function HomePage() {
 
   // 認証状態
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  // 動画プレイヤー
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
 
   // 初回レンダリング時にデータをロード
   useEffect(() => {
@@ -128,19 +132,20 @@ function HomePage() {
 
   /**
    * チャンネルをクリックした時の処理
-   * チャンネルの最新動画を新しいタブで開く
+   * チャンネルの最新動画をモーダルで再生
    */
   const handleChannelClick = async (channel: any) => {
     try {
       const channelId = channel.snippet?.resourceId?.channelId || channel.id
       const response = await youtubeDataApi.searchVideos(`channel:${channelId}`, 1)
       if (response.data.length > 0) {
-        const videoId = response.data[0].videoId
-        window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')
+        const videoId = response.data[0].id?.videoId || response.data[0].videoId
+        if (videoId) {
+          playVideo(videoId)
+        }
       }
     } catch (error) {
       console.error('Failed to get latest video:', error)
-      navigate('/channels')
     }
   }
 
@@ -162,15 +167,25 @@ function HomePage() {
   }
 
   /**
-   * 動画を新しいタブで再生
+   * 動画をモーダルで再生
    */
   const playVideo = (videoId: string) => {
-    window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')
+    setPlayingVideoId(videoId)
+  }
+
+  /**
+   * 動画プレイヤーを閉じる
+   */
+  const closePlayer = () => {
+    setPlayingVideoId(null)
   }
 
   return (
     <div className="home-page">
       <h1>YouTube Orchestrator</h1>
+
+      {/* 動画プレイヤーモーダル */}
+      <VideoPlayer videoId={playingVideoId} onClose={closePlayer} />
       
       <section className="latest-section" style={{ marginBottom: '32px', backgroundColor: '#1a1a1a', padding: '24px', borderRadius: '12px', border: '1px solid #2a2a2a' }}>
         <h2>🆕 最新情報</h2>

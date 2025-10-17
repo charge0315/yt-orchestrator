@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { playlistsApi } from '../api/client'
+import VideoPlayer from '../components/VideoPlayer'
 import './PlaylistDetailPage.css'
 
 function PlaylistDetailPage() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
 
   const { data: playlist, isLoading } = useQuery({
     queryKey: ['playlist', id],
@@ -28,6 +31,9 @@ function PlaylistDetailPage() {
 
   return (
     <div className="playlist-detail-page">
+      {/* 動画プレイヤーモーダル */}
+      <VideoPlayer videoId={playingVideoId} onClose={() => setPlayingVideoId(null)} />
+
       <Link to="/playlists" className="back-link">
         ← プレイリスト一覧に戻る
       </Link>
@@ -50,15 +56,28 @@ function PlaylistDetailPage() {
             <div key={song.videoId + index} className="song-item">
               <div className="song-number">{index + 1}</div>
               {song.thumbnail && (
-                <img src={song.thumbnail} alt={song.title} className="song-thumbnail" />
+                <img
+                  src={song.thumbnail}
+                  alt={song.title}
+                  className="song-thumbnail clickable"
+                  onClick={() => setPlayingVideoId(song.videoId)}
+                  style={{ cursor: 'pointer' }}
+                />
               )}
-              <div className="song-info">
+              <div className="song-info" onClick={() => setPlayingVideoId(song.videoId)} style={{ cursor: 'pointer' }}>
                 <div className="song-title">{song.title}</div>
                 <div className="song-artist">{song.artist}</div>
               </div>
               {song.duration && (
                 <div className="song-duration">{song.duration}</div>
               )}
+              <button
+                className="play-button"
+                onClick={() => setPlayingVideoId(song.videoId)}
+                title="再生"
+              >
+                ▶️
+              </button>
               <button
                 className="remove-button"
                 onClick={() => removeSongMutation.mutate(song.videoId)}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { youtubeDataApi, artistsApi } from '../api/client'
+import VideoPlayer from '../components/VideoPlayer'
 import './ArtistsPage.css'
 
 function ArtistsPage() {
@@ -8,6 +9,7 @@ function ArtistsPage() {
   const [isSearching, setIsSearching] = useState(false)
   const [artists, setArtists] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
 
   useEffect(() => {
     loadArtists()
@@ -69,8 +71,26 @@ function ArtistsPage() {
     }
   }
 
+  const handleArtistClick = async (artist: any) => {
+    try {
+      const channelId = artist.snippet?.resourceId?.channelId || artist.id
+      const response = await youtubeDataApi.searchVideos(`channel:${channelId}`, 1)
+      if (response.data.length > 0) {
+        const videoId = response.data[0].id?.videoId || response.data[0].videoId
+        if (videoId) {
+          setPlayingVideoId(videoId)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get latest video:', error)
+    }
+  }
+
   return (
     <div className="artists-page">
+      {/* 動画プレイヤーモーダル */}
+      <VideoPlayer videoId={playingVideoId} onClose={() => setPlayingVideoId(null)} />
+
       <h1>🎵 アーティスト検索</h1>
 
       <section className="section">
@@ -145,24 +165,42 @@ function ArtistsPage() {
         ) : artists.length > 0 ? (
           <div className="artists-grid">
             {artists.map((artist: any) => (
-              <div key={artist.id} className="artist-card">
+              <div key={artist.id} className="artist-card" style={{ cursor: 'pointer' }}>
                 {artist.snippet?.thumbnails?.default?.url && (
-                  <img src={artist.snippet.thumbnails.default.url} alt={artist.snippet.title} />
+                  <img
+                    src={artist.snippet.thumbnails.default.url}
+                    alt={artist.snippet.title}
+                    onClick={() => handleArtistClick(artist)}
+                  />
                 )}
-                <h3>{artist.snippet?.title}</h3>
-                <button
-                  onClick={() => handleUnsubscribe(artist.id)}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#2a2a2a',
-                    color: '#ff4444',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    marginTop: '8px'
-                  }}
-                >
-                  登録解除
-                </button>
+                <h3 onClick={() => handleArtistClick(artist)}>{artist.snippet?.title}</h3>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                  <button
+                    onClick={() => handleArtistClick(artist)}
+                    style={{
+                      flex: 1,
+                      padding: '8px 16px',
+                      backgroundColor: '#ff0000',
+                      color: '#ffffff',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    ▶️ 再生
+                  </button>
+                  <button
+                    onClick={() => handleUnsubscribe(artist.id)}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#2a2a2a',
+                      color: '#ff4444',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    登録解除
+                  </button>
+                </div>
               </div>
             ))}
           </div>

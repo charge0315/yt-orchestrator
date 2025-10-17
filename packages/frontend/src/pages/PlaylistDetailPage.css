@@ -68,10 +68,21 @@
   height: 48px;
   border-radius: 4px;
   object-fit: cover;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.song-thumbnail.clickable:hover {
+  transform: scale(1.05);
+  opacity: 0.8;
 }
 
 .song-info {
   flex: 1;
+  transition: color 0.2s;
+}
+
+.song-info:hover .song-title {
+  color: #ff0000;
 }
 
 .song-title {
@@ -87,6 +98,23 @@
 .song-duration {
   color: #888;
   font-size: 14px;
+}
+
+.play-button {
+  padding: 8px 16px;
+  background-color: #ff0000;
+  color: #ffffff;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-button:hover {
+  background-color: #cc0000;
+  transform: scale(1.05);
 }
 
 .remove-button {
