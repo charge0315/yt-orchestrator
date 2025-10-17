@@ -11,6 +11,7 @@ import RecommendationsPage from './pages/RecommendationsPage'
 import YouTubePlaylistsPage from './pages/YouTubePlaylistsPage'
 import YouTubeCallbackPage from './pages/YouTubeCallbackPage'
 import YouTubeMusicSetupPage from './pages/YouTubeMusicSetupPage'
+import AuthCallbackPage from './pages/AuthCallbackPage'
 import LoginPage from './pages/LoginPage'
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )
@@ -53,6 +55,7 @@ function App() {
         <Route path="/youtube/playlists/:id" element={<YouTubePlaylistDetailPage />} />
         <Route path="/youtube/callback" element={<YouTubeCallbackPage />} />
         <Route path="/ytmusic/setup" element={<YouTubeMusicSetupPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/login" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

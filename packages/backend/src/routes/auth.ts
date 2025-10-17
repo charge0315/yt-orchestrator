@@ -2,9 +2,16 @@ import express, { Request, Response } from 'express';
 import User from '../models/User.js';
 import { generateToken, authenticate, AuthRequest } from '../middleware/auth.js';
 import { OAuth2Client } from 'google-auth-library';
+import { google } from 'googleapis';
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`
+);
 
 // Register
 router.post('/register', async (req: Request, res: Response) => {
@@ -107,6 +114,80 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to get user info' });
+  }
+});
+
+// Google OAuth - Start authentication
+router.get('/google', (req: Request, res: Response) => {
+  const scopes = [
+    'https://www.googleapis.com/auth/youtube',
+    'https://www.googleapis.com/auth/youtube.force-ssl',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile'
+  ];
+
+  const url = oauth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: scopes,
+    prompt: 'consent'
+  });
+
+  res.redirect(url);
+});
+
+// Google OAuth - Handle callback
+router.get('/google/callback', async (req: Request, res: Response) => {
+  try {
+    const { code } = req.query;
+    
+    if (!code || typeof code !== 'string') {
+      return res.redirect(`${process.env.FRONTEND_URL}?error=no_code`);
+    }
+
+    const { tokens } = await oauth2Client.getToken(code);
+    oauth2Client.setCredentials(tokens);
+
+    const oauth2 = google.oauth2({ version: 'v2', auth: oauth2Client });
+    const { data } = await oauth2.userinfo.get();
+
+    if (!data.email) {
+      return res.redirect(`${process.env.FRONTEND_URL}?error=no_email`);
+    }
+
+    let user = await User.findOne({ email: data.email });
+
+    if (!user) {
+      const randomPassword = Math.random().toString(36).slice(-8);
+      user = new User({
+        email: data.email,
+        name: data.name || data.email.split('@')[0],
+        password: randomPassword,
+        googleId: data.id,
+        picture: data.picture,
+        youtubeAccessToken: tokens.access_token,
+        youtubeRefreshToken: tokens.refresh_token
+      });
+    } else {
+      user.youtubeAccessToken = tokens.access_token;
+      if (tokens.refresh_token) {
+        user.youtubeRefreshToken = tokens.refresh_token;
+      }
+    }
+    
+    await user.save();
+
+    const token = generateToken(user._id.toString());
+
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 30 * 24 * 60 * 60 * 1000
+    });
+
+    res.redirect(process.env.FRONTEND_URL || 'http://localhost:5173');
+  } catch (error) {
+    console.error('Google OAuth callback error:', error);
+    res.redirect(`${process.env.FRONTEND_URL}?error=auth_failed`);
   }
 });
 
