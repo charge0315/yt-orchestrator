@@ -15,8 +15,7 @@ import artistRoutes from './routes/artists.js';
 import channelRoutes from './routes/channels.js';
 import recommendationRoutes from './routes/recommendations.js';
 import authRoutes from './routes/auth.js';
-
-
+import youtubeRoutes from './routes/youtube.js';
 import ytmusicRoutes from './routes/ytmusic.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -91,6 +90,9 @@ app.use('/api/channels', channelRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 
 
+
+// YouTube API連携ルート
+app.use('/api/youtube', youtubeRoutes);
 
 // YouTube Music API連携ルート
 app.use('/api/ytmusic', ytmusicRoutes);

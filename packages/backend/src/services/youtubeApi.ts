@@ -3,6 +3,16 @@
  * ユーザーのアクセストークンを使用してYouTube APIを操作する
  */
 import { google, youtube_v3 } from 'googleapis';
+import { GaxiosError } from 'gaxios';
+
+// シンプルなメモリキャッシュ
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
+
+const cache = new Map<string, CacheEntry>();
+const CACHE_TTL = 30 * 60 * 1000; // 30分（クォータ節約）
 
 export class YouTubeApiService {
   private youtube: youtube_v3.Youtube;
@@ -46,12 +56,23 @@ export class YouTubeApiService {
    * @returns プレイリストの配列
    */
   async getPlaylists() {
-    const response = await this.youtube.playlists.list({
-      part: ['snippet', 'contentDetails'],
-      mine: true, // 認証ユーザーのプレイリストのみ
-      maxResults: 50
-    });
-    return response.data.items || [];
+    const cacheKey = 'playlists';
+    const cached = this.getFromCache(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const response = await this.youtube.playlists.list({
+        part: ['snippet', 'contentDetails'],
+        mine: true,
+        maxResults: 50
+      });
+      const items = response.data.items || [];
+      this.setCache(cacheKey, items);
+      return items;
+    } catch (error) {
+      this.handleApiError(error, 'getPlaylists');
+      return [];
+    }
   }
 
   /**
@@ -204,12 +225,23 @@ export class YouTubeApiService {
    * @returns 登録チャンネルの配列
    */
   async getSubscriptions() {
-    const response = await this.youtube.subscriptions.list({
-      part: ['snippet', 'contentDetails'],
-      mine: true, // 認証ユーザーの登録チャンネルのみ
-      maxResults: 50
-    });
-    return response.data.items || [];
+    const cacheKey = 'subscriptions';
+    const cached = this.getFromCache(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const response = await this.youtube.subscriptions.list({
+        part: ['snippet', 'contentDetails'],
+        mine: true,
+        maxResults: 50
+      });
+      const items = response.data.items || [];
+      this.setCache(cacheKey, items);
+      return items;
+    } catch (error) {
+      this.handleApiError(error, 'getSubscriptions');
+      return [];
+    }
   }
 
   /**
@@ -244,34 +276,97 @@ export class YouTubeApiService {
   /**
    * チャンネルの動画を日付順で取得
    * @param channelId チャンネルID
-   * @param maxResults 取得する最大件数（デフォルト: 10）
+   * @param maxResults 取得する最大件数（デフォルト: 5）
    * @returns 動画の配列
    */
-  async getChannelVideos(channelId: string, maxResults = 10) {
-    const response = await this.youtube.search.list({
-      part: ['snippet'],
-      channelId,
-      order: 'date', // 日付順（新しい順）
-      type: ['video'], // 動画のみ（プレイリストやチャンネルを除外）
-      maxResults
-    });
-    return response.data.items || [];
+  async getChannelVideos(channelId: string, maxResults = 5) {
+    const cacheKey = `channel:${channelId}:${maxResults}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const response = await this.youtube.search.list({
+        part: ['snippet'],
+        channelId,
+        order: 'date',
+        type: ['video'],
+        maxResults,
+        fields: 'items(id,snippet(title,thumbnails,channelTitle,publishedAt))' // 必要なフィールドのみ
+      });
+      const items = response.data.items || [];
+      this.setCache(cacheKey, items);
+      return items;
+    } catch (error) {
+      this.handleApiError(error, 'getChannelVideos');
+      return [];
+    }
   }
 
   /**
    * キーワードで動画を検索
    * @param query 検索クエリ
-   * @param maxResults 取得する最大件数（デフォルト: 20）
+   * @param maxResults 取得する最大件数（デフォルト: 10）
    * @returns 動画の配列
    */
-  async searchVideos(query: string, maxResults = 20) {
-    const response = await this.youtube.search.list({
-      part: ['snippet'],
-      q: query, // 検索クエリ
-      type: ['video'], // 動画のみ
-      maxResults,
-      order: 'relevance' // 関連性順
-    });
-    return response.data.items || [];
+  async searchVideos(query: string, maxResults = 10) {
+    const cacheKey = `search:${query}:${maxResults}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const response = await this.youtube.search.list({
+        part: ['snippet'],
+        q: query,
+        type: ['video'],
+        maxResults,
+        order: 'relevance',
+        fields: 'items(id,snippet(title,thumbnails,channelTitle))' // 必要なフィールドのみ
+      });
+      const items = response.data.items || [];
+      this.setCache(cacheKey, items);
+      return items;
+    } catch (error) {
+      this.handleApiError(error, 'searchVideos');
+      return [];
+    }
+  }
+
+  // ========================================
+  // キャッシュとエラーハンドリング
+  // ========================================
+
+  /**
+   * キャッシュから取得
+   */
+  private getFromCache(key: string): any | null {
+    const entry = cache.get(key);
+    if (!entry) return null;
+    
+    if (Date.now() - entry.timestamp > CACHE_TTL) {
+      cache.delete(key);
+      return null;
+    }
+    
+    console.log(`Cache hit: ${key}`);
+    return entry.data;
+  }
+
+  /**
+   * キャッシュに保存
+   */
+  private setCache(key: string, data: any): void {
+    cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  /**
+   * APIエラーハンドリング
+   */
+  private handleApiError(error: any, method: string): void {
+    if (error.code === 403) {
+      console.error(`YouTube API quota exceeded in ${method}. Using cached data or returning empty result.`);
+      console.error('Please wait until quota resets (daily at midnight Pacific Time) or enable billing.');
+    } else {
+      console.error(`Error in ${method}:`, error.message);
+    }
   }
 }

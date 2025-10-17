@@ -17,10 +17,10 @@ YouTube Orchestratorは、YouTubeとYouTube Musicの体験を向上させるた�
 
 - **📝 プレイリスト管理**
   - YouTube Data API v3と直接統合
-  - プレイリストの一覧表示・作成・削除
-  - プレイリストへの曲の追加・削除
+  - YouTube Musicプレイリスト: サムネイル付き一覧表示
+  - YouTube動画プレイリスト: サムネイル付き一覧表示
   - リアルタイムでYouTubeと同期
-  - 音楽プレイリストと動画プレイリストの自動判定
+  - 音楽プレイリストと動画プレイリストの自動判定・分離
 
 - **🤖 AIによるおすすめ**
   - OpenAI GPT-3.5を使用した高度なおすすめアルゴリズム
@@ -36,9 +36,9 @@ YouTube Orchestratorは、YouTubeとYouTube Musicの体験を向上させるた�
 
 - **📺 チャンネル管理**
   - YouTube Data API v3のチャンネル登録機能を使用
-  - 登録チャンネルの一覧表示
+  - 登録チャンネルの一覧表示（最新動画サムネイル付き）
   - チャンネルの登録・登録解除
-  - 各チャンネルの最新動画サムネイル表示
+  - チャンネル検索機能
 
 - **🔐 認証**
   - Google OAuth 2.0認証
@@ -210,14 +210,16 @@ npm run dev:backend
 - `POST /api/channels` - チャンネルを登録（パラメータ: channelId）
 - `DELETE /api/channels/:subscriptionId` - チャンネル登録を解除
 
-### YouTube Data
-- `GET /api/youtube/latest-videos` - 登録チャンネルの最新動画を取得
-
-### おすすめ（OpenAI）
-- `GET /api/recommendations` - AIによるおすすめチャンネル・アーティストを取得
+### YouTube（動画）
+- `GET /api/youtube/playlists` - YouTube動画プレイリスト一覧を取得
+- `GET /api/youtube/search` - 動画を検索
 
 ### YouTube Music
 - `GET /api/ytmusic/playlists` - YouTube Musicプレイリスト一覧を取得
+- `GET /api/ytmusic/search` - 音楽を検索
+
+### おすすめ（OpenAI）
+- `GET /api/recommendations` - AIによるおすすめチャンネル・アーティストを取得
 
 ## ビルド
 
@@ -241,7 +243,8 @@ npm test
 - **セッション管理**: Express Sessionでメモリ内管理（Google OAuth）
 - **プレイリスト・チャンネル**: YouTube Data API v3と直接統合
 - **リアルタイム同期**: YouTubeと常に同期された状態を維持
-- **キャッシング**: メモリキャッシュでAPI呼び出しを削減
+- **キャッシング**: 30分間のメモリキャッシュでAPI呼び出しを大幅削減
+- **クォータ最適化**: fieldsパラメータとmaxResults削減でクォータ節約
 
 ### AI機能
 - OpenAI GPT-3.5-turboを使用
@@ -257,32 +260,46 @@ npm test
 
 ## 🔄 最近の更新
 
-### 2025年10月版
-- ✅ **YouTubeApiServiceの改善**
-  - 動画検索機能を追加（`searchVideos`メソッド）
-  - プレイリスト音楽判定機能（`isMusicPlaylist`メソッド）
-  - 全メソッドにJSDocコメントを追加
-  - コードの可読性とメンテナンス性を向上
+### 2025年1月版
+- ✅ **UI/UX改善**
+  - プレイリストページ: YouTube Musicライブラリをサムネイル表示
+  - 再生リストページ: YouTube動画プレイリストをサムネイル表示
+  - チャンネルページ: 各チャンネルの最新動画サムネイルを表示
+  - ホーム画面: 不要なログインボタンを削除
 
-- ✅ **エラーハンドリングの改善**
-  - `alert`を全て`console.error`/`console.log`に置き換え
-  - デバッグしやすいログ出力に統一
+- ✅ **API最適化とクォータ節約**
+  - キャッシュTTLを30分に延長（6倍長持ち）
+  - `maxResults`を削減（検索: 20→10、チャンネル動画: 10→5）
+  - `fields`パラメータで必要なデータのみ取得
+  - クォータエラー時の適切なフォールバック処理
 
-- ✅ **AIおすすめ機能の強化**
-  - OpenAI APIキー未設定時のフォールバック処理を実装
-  - 登録チャンネルの最新動画を自動表示
+- ✅ **バックエンド改善**
+  - `/api/youtube/playlists`エンドポイント追加
+  - `/api/youtube/search`エンドポイント追加
+  - YouTube動画プレイリストと音楽プレイリストの分離
+  - エラーハンドリングの強化
 
-- ✅ **バグ修正**
-  - `recommendations.ts`での変数重複宣言を修正
+- ✅ **認証フロー改善**
+  - 不要なYouTube連携ボタンを削除
+  - Google OAuthで自動的にYouTubeアクセス可能に
+  - セッション管理の最適化
+
+## ⚠️ 重要な注意事項
+
+### YouTube Data API v3 クォータ制限
+- 無料枠: 1日あたり10,000ユニット
+- 検索: 1回あたり100ユニット
+- プレイリスト取得: 1回あたり1ユニット
+- **対策**: 30分間のキャッシュ、maxResults削減、fieldsパラメータ最適化
+- **推奨**: Google Cloud Consoleで課金を有効化（無料枠超過分のみ課金）
 
 ## 📋 今後の改善予定
 
-- 🔜 YouTube Music API との完全統合（ytmusic-api互換性問題の解決）
 - 🔜 プレイリストのインポート/エクスポート機能
 - 🔜 楽曲の検索機能の強化
 - 🔜 動画再生機能の統合
-- 🔜 YouTube Data API v3のクォータ管理
 - 🔜 プレイリストのソート・フィルター機能
+- 🔜 オフラインキャッシュ機能
 
 ## ライセンス
 

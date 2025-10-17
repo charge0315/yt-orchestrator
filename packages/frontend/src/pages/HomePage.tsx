@@ -171,19 +171,6 @@ function HomePage() {
     <div className="home-page">
       <h1>YouTube Orchestrator</h1>
       
-      {!isAuthenticated && (
-        <div style={{ backgroundColor: '#2a2a2a', padding: '20px', borderRadius: '8px', marginBottom: '24px', border: '2px solid #ff0000' }}>
-          <h3 style={{ color: '#ff0000', marginBottom: '12px' }}>🔐 ログインが必要です</h3>
-          <p style={{ marginBottom: '12px' }}>YouTube Orchestratorの機能を使用するには、Googleアカウントでログインしてください。</p>
-          <button 
-            onClick={() => window.location.href = 'http://localhost:3001/api/auth/google'}
-            style={{ backgroundColor: '#ff0000', color: 'white', padding: '12px 24px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}
-          >
-            Googleでログイン
-          </button>
-        </div>
-      )}
-
       <section className="latest-section" style={{ marginBottom: '32px', backgroundColor: '#1a1a1a', padding: '24px', borderRadius: '12px', border: '1px solid #2a2a2a' }}>
         <h2>🆕 最新情報</h2>
         {loadingLatest ? (

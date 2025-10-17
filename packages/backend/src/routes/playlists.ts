@@ -21,14 +21,14 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
     const allPlaylists = await ytService.getPlaylists();
 
-    // 動画系プレイリストのみをフィルタリング（音楽系を除外）
     const videoPlaylists = allPlaylists.filter((playlist: any) =>
       !ytService.isMusicPlaylist(playlist)
     );
 
     res.json(videoPlaylists);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch playlists' });
+    console.error('Error fetching playlists:', error);
+    res.json([]);
   }
 });
 

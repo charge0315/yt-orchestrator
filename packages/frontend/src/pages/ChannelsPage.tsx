@@ -7,6 +7,7 @@ function ChannelsPage() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [channels, setChannels] = useState<any[]>([])
+  const [channelVideos, setChannelVideos] = useState<{[key: string]: any[]}>({})
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -17,6 +18,21 @@ function ChannelsPage() {
     try {
       const response = await channelsApi.getAll()
       setChannels(response.data)
+      
+      // 各チャンネルの最新動画を取得
+      const videosMap: {[key: string]: any[]} = {}
+      for (const channel of response.data) {
+        const channelId = channel.snippet?.resourceId?.channelId
+        if (channelId) {
+          try {
+            const videos = await youtubeDataApi.searchVideos(`channel:${channelId}`, 1)
+            videosMap[channel.id] = videos.data
+          } catch (error) {
+            console.error(`Failed to load videos for channel ${channelId}:`, error)
+          }
+        }
+      }
+      setChannelVideos(videosMap)
     } catch (error) {
       console.error('Failed to load channels:', error)
     } finally {
@@ -147,29 +163,35 @@ function ChannelsPage() {
           <p>読み込み中...</p>
         ) : channels.length > 0 ? (
           <div className="channels-grid">
-            {channels.map((channel: any) => (
-              <div key={channel.id} className="channel-card">
-                {channel.snippet?.thumbnails?.default?.url && (
-                  <img src={channel.snippet.thumbnails.default.url} alt={channel.snippet.title} />
-                )}
-                <div className="channel-info">
-                  <h3>{channel.snippet?.title}</h3>
-                  <button
-                    onClick={() => handleUnsubscribe(channel.id)}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#2a2a2a',
-                      color: '#ff4444',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      marginTop: '8px'
-                    }}
-                  >
-                    登録解除
-                  </button>
+            {channels.map((channel: any) => {
+              const latestVideo = channelVideos[channel.id]?.[0]
+              const thumbnail = latestVideo?.snippet?.thumbnails?.medium?.url || 
+                               latestVideo?.snippet?.thumbnails?.default?.url ||
+                               channel.snippet?.thumbnails?.default?.url
+              return (
+                <div key={channel.id} className="channel-card">
+                  {thumbnail && (
+                    <img src={thumbnail} alt={channel.snippet?.title} />
+                  )}
+                  <div className="channel-info">
+                    <h3>{channel.snippet?.title}</h3>
+                    <button
+                      onClick={() => handleUnsubscribe(channel.id)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#2a2a2a',
+                        color: '#ff4444',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        marginTop: '8px'
+                      }}
+                    >
+                      登録解除
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ) : (
           <div className="empty-state">
