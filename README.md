@@ -4,25 +4,41 @@ YouTubeとYouTube Musicのオーケストレータ - 音楽・動画管理をよ
 
 ## 概要
 
-YouTube Orchestratorは、YouTubeとYouTube Musicの体験を向上させるための包括的な管理ツールです。プレイリスト管理、AIによるおすすめ、アーティストの新曲追跡、チャンネル管理など、様々な機能を提供します。
+YouTube Orchestratorは、YouTubeとYouTube Musicの体験を向上させるための包括的な管理ツールです。YouTube Data API v3と直接統合し、プレイリスト管理、AIによるおすすめ、アーティストの新曲追跡、チャンネル管理など、様々な機能を提供します。
 
 ## 機能
 
+- **ホームページ**
+  - 最新動画の横スクロール表示
+  - YouTube（チャンネル・プレイリスト）セクション
+  - YouTube Music（アーティスト・プレイリスト）セクション
+  - AIによるおすすめセクション
+  - 各セクションでソート機能（最新順/名前順）
+
 - **プレイリスト管理**
-  - プレイリストの一覧表示
-  - プレイリストの作成・削除
+  - YouTube Data API v3と直接統合
+  - プレイリストの一覧表示・作成・削除
   - プレイリストへの曲の追加・削除
+  - リアルタイムでYouTubeと同期
 
 - **AIによるおすすめ**
-  - ユーザーの音楽の好みに基づいたおすすめ曲の表示
+  - OpenAI GPT-3.5を使用した高度なおすすめアルゴリズム
+  - ユーザーの登録チャンネルに基づいた新しいチャンネル・アーティストの提案
+  - おすすめ理由の表示
 
 - **アーティスト追跡**
-  - 登録アーティストの新曲一覧表示
+  - YouTube Data API v3のチャンネル登録機能を使用
+  - 登録アーティストの新曲一覧表示（7日以内にNEWバッジ表示）
   - アーティストの登録・登録解除
 
 - **チャンネル管理**
+  - YouTube Data API v3のチャンネル登録機能を使用
   - 登録チャンネルの一覧表示
   - チャンネルの登録・登録解除
+
+- **認証**
+  - Google OAuth 2.0認証
+  - YouTubeアクセストークンの自動管理
 
 ## 技術スタック
 
@@ -36,11 +52,12 @@ YouTube Orchestratorは、YouTubeとYouTube Musicの体験を向上させるた�
 
 ### バックエンド
 - **Express.js** - Webフレームワーク
-- **MongoDB** - データベース
+- **MongoDB** - ユーザー認証データベース
 - **Mongoose** - ODM（Object Document Mapper）
 - **TypeScript** - 型安全性
+- **googleapis** - YouTube Data API v3統合
 - **ytmusic-api** - YouTube Music API統合
-- **OpenAI** - AIおすすめ機能
+- **OpenAI API** - AIおすすめ機能（GPT-3.5-turbo）
 
 ## プロジェクト構造
 
@@ -56,8 +73,9 @@ yt-orchestrator/
 │   │   └── package.json
 │   └── backend/           # Express.jsバックエンド
 │       ├── src/
-│       │   ├── models/      # データモデル
+│       │   ├── models/      # データモデル（User）
 │       │   ├── routes/      # APIルート
+│       │   ├── services/    # 外部APIサービス（YouTube API）
 │       │   └── index.ts     # エントリーポイント
 │       └── package.json
 └── package.json           # ルートパッケージ
@@ -90,21 +108,28 @@ npm install
 
    b. 新しいプロジェクトを作成（または既存のプロジェクトを選択）
 
-   c. 「APIとサービス」→「認証情報」に移動
+   c. 「APIとサービス」→「ライブラリ」で以下のAPIを有効化:
+      - YouTube Data API v3
 
-   d. 「認証情報を作成」→「OAuth クライアント ID」を選択
+   d. 「APIとサービス」→「認証情報」に移動
 
-   e. アプリケーションの種類: 「ウェブアプリケーション」
+   e. 「認証情報を作成」→「OAuth クライアント ID」を選択
 
-   f. 承認済みのJavaScript生成元に追加:
+   f. アプリケーションの種類: 「ウェブアプリケーション」
+
+   g. 承認済みのJavaScript生成元に追加:
       - `http://localhost:5173`
       - `http://localhost:5174`
 
-   g. 承認済みのリダイレクトURIに追加:
+   h. 承認済みのリダイレクトURIに追加:
       - `http://localhost:5173`
       - `http://localhost:5174`
 
-   h. クライアントIDをコピー
+   i. OAuth同意画面でスコープを追加:
+      - `https://www.googleapis.com/auth/youtube`
+      - `https://www.googleapis.com/auth/youtube.force-ssl`
+
+   j. クライアントIDとクライアントシークレットをコピー
 
 4. バックエンドの環境変数を設定：
 ```bash
@@ -117,9 +142,9 @@ cp .env.example .env
 PORT=3001
 NODE_ENV=development
 MONGODB_URI=mongodb://localhost:27017/yt-orchestrator
-YOUTUBE_API_KEY=your_youtube_api_key_here
-OPENAI_API_KEY=your_openai_api_key_here
 GOOGLE_CLIENT_ID=your_google_client_id_here
+GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+OPENAI_API_KEY=your_openai_api_key_here
 JWT_SECRET=your_random_secret_key_here
 FRONTEND_URL=http://localhost:5173
 ```
@@ -159,28 +184,38 @@ npm run dev:backend
 
 ## API エンドポイント
 
-### プレイリスト
-- `GET /api/playlists` - すべてのプレイリストを取得
+### 認証
+- `POST /api/auth/google` - Google OAuth認証
+- `GET /api/auth/me` - 現在のユーザー情報を取得
+
+### プレイリスト（YouTube Data API v3）
+- `GET /api/playlists` - YouTubeプレイリスト一覧を取得
 - `GET /api/playlists/:id` - 特定のプレイリストを取得
-- `POST /api/playlists` - プレイリストを作成
-- `PUT /api/playlists/:id` - プレイリストを更新
-- `DELETE /api/playlists/:id` - プレイリストを削除
+- `POST /api/playlists` - YouTubeプレイリストを作成
+- `PUT /api/playlists/:id` - YouTubeプレイリストを更新
+- `DELETE /api/playlists/:id` - YouTubeプレイリストを削除
 - `POST /api/playlists/:id/songs` - プレイリストに曲を追加
-- `DELETE /api/playlists/:id/songs/:videoId` - プレイリストから曲を削除
+- `DELETE /api/playlists/:id/songs/:playlistItemId` - プレイリストから曲を削除
 
-### アーティスト
-- `GET /api/artists` - すべての登録アーティストを取得
-- `POST /api/artists` - アーティストを登録
-- `DELETE /api/artists/:id` - アーティストの登録を解除
-- `GET /api/artists/new-releases` - 新曲一覧を取得
+### アーティスト（YouTube Data API v3）
+- `GET /api/artists` - YouTubeチャンネル登録一覧を取得
+- `POST /api/artists` - チャンネルを登録（パラメータ: channelId）
+- `DELETE /api/artists/:subscriptionId` - チャンネル登録を解除
+- `GET /api/artists/new-releases` - 登録チャンネルの最新動画を取得
 
-### チャンネル
-- `GET /api/channels` - すべての登録チャンネルを取得
-- `POST /api/channels` - チャンネルを登録
-- `DELETE /api/channels/:id` - チャンネルの登録を解除
+### チャンネル（YouTube Data API v3）
+- `GET /api/channels` - YouTubeチャンネル登録一覧を取得
+- `POST /api/channels` - チャンネルを登録（パラメータ: channelId）
+- `DELETE /api/channels/:subscriptionId` - チャンネル登録を解除
 
-### おすすめ
-- `GET /api/recommendations` - おすすめ曲を取得
+### YouTube Data
+- `GET /api/youtube/latest-videos` - 登録チャンネルの最新動画を取得
+
+### おすすめ（OpenAI）
+- `GET /api/recommendations` - AIによるおすすめチャンネル・アーティストを取得
+
+### YouTube Music
+- `GET /api/ytmusic/playlists` - YouTube Musicプレイリスト一覧を取得
 
 ## ビルド
 
@@ -198,14 +233,26 @@ npm run build
 npm test
 ```
 
+## アーキテクチャの特徴
+
+### データ管理
+- **ユーザー認証**: MongoDBで管理（JWT + Google OAuth）
+- **プレイリスト・チャンネル**: YouTube Data API v3と直接統合（MongoDBに保存せず）
+- **リアルタイム同期**: YouTubeと常に同期された状態を維持
+
+### AI機能
+- OpenAI GPT-3.5-turboを使用
+- ユーザーの登録チャンネルを分析
+- 新しいチャンネル・アーティストを理由付きで提案
+
 ## 今後の改善予定
 
-- YouTube Music API との完全統合
-- OpenAI APIを使用した高度なおすすめアルゴリズム
-- ユーザー認証とマルチユーザー対応
+- YouTube Music API との完全統合（ytmusic-api互換性問題の解決）
 - プレイリストのインポート/エクスポート機能
 - 楽曲の検索機能の強化
-- リアルタイム同期機能
+- 動画再生機能の統合
+- パフォーマンス最適化（キャッシング）
+- YouTube Data API v3のクォータ管理
 
 ## ライセンス
 
