@@ -1,94 +1,51 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google'
 import './LoginPage.css'
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-
 function LoginPage() {
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const { googleLogin } = useAuth()
-  const navigate = useNavigate()
-
-  const handleGoogleSuccess = async (credentialResponse: any) => {
-    setError('')
-    setLoading(true)
-
-    try {
-      await googleLogin(credentialResponse.credential)
-      navigate('/')
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Google認証に失敗しました')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleGoogleError = () => {
-    setError('Google認証がキャンセルされました')
-  }
-
-  // Debug: Check if Client ID is loaded
-  console.log('Google Client ID:', GOOGLE_CLIENT_ID ? 'Loaded' : 'NOT LOADED');
-  console.log('Client ID value:', GOOGLE_CLIENT_ID);
-
-  if (!GOOGLE_CLIENT_ID) {
-    return (
-      <div className="login-page">
-        <div className="login-container">
-          <div className="error-message">
-            <p>Google Client IDが設定されていません。</p>
-            <p>環境変数ファイル(.env)を確認してください。</p>
-          </div>
-        </div>
-      </div>
-    )
+  const handleGoogleLogin = () => {
+    // バックエンドのOAuth認証エンドポイントにリダイレクト
+    window.location.href = 'http://localhost:3001/api/auth/google'
   }
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <div className="login-page">
-        <div className="login-container">
-          <div className="logo-section">
-            <h1>YouTube Orchestrator</h1>
-            <p className="tagline">YouTubeとYouTube Musicを統合管理するスマートツール</p>
-          </div>
+    <div className="login-page">
+      <div className="login-container">
+        <div className="logo-section">
+          <h1>YouTube Orchestrator</h1>
+          <p className="tagline">YouTubeとYouTube Musicを統合管理するスマートツール</p>
+        </div>
 
-          <div className="features-preview">
-            <div className="feature-item">
-              <span className="feature-icon">🎵</span>
-              <span>プレイリスト管理</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-icon">🤖</span>
-              <span>AIおすすめ</span>
-            </div>
-            <div className="feature-item">
-              <span className="feature-icon">🎤</span>
-              <span>アーティスト追跡</span>
-            </div>
+        <div className="features-preview">
+          <div className="feature-item">
+            <span className="feature-icon">🎵</span>
+            <span>プレイリスト管理</span>
           </div>
-
-          <div className="google-login-section">
-            <p className="login-instruction">Googleアカウントでログイン</p>
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              text="continue_with"
-              size="large"
-              width="320"
-              locale="ja"
-            />
+          <div className="feature-item">
+            <span className="feature-icon">🤖</span>
+            <span>AIおすすめ</span>
           </div>
+          <div className="feature-item">
+            <span className="feature-icon">🎤</span>
+            <span>アーティスト追跡</span>
+          </div>
+        </div>
 
-          {error && <div className="error-message">{error}</div>}
-          {loading && <div className="loading-message">ログイン中...</div>}
+        <div className="google-login-section">
+          <p className="login-instruction">Googleアカウントでログイン</p>
+          <button 
+            onClick={handleGoogleLogin}
+            className="google-login-button"
+          >
+            <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+            </svg>
+            Googleでログイン
+          </button>
         </div>
       </div>
-    </GoogleOAuthProvider>
+    </div>
   )
 }
 
