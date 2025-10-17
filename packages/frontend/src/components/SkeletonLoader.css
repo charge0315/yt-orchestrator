@@ -1,0 +1,71 @@
+.skeleton-container {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.skeleton-card {
+  min-width: 150px;
+  width: 150px;
+  flex-shrink: 0;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.skeleton-video {
+  min-width: 150px;
+  width: 150px;
+  flex-shrink: 0;
+}
+
+.skeleton-image {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  background-color: #3a3a3a;
+}
+
+.skeleton-video-thumbnail {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 8px;
+  background-color: #3a3a3a;
+}
+
+.skeleton-text {
+  height: 12px;
+  border-radius: 4px;
+  background-color: #3a3a3a;
+}
+
+.skeleton-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #3a3a3a;
+}
+
+/* シマーアニメーション */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    90deg,
+    #2a2a2a 0%,
+    #3a3a3a 20%,
+    #4a4a4a 40%,
+    #3a3a3a 60%,
+    #2a2a2a 100%
+  );
+  background-size: 2000px 100%;
+}

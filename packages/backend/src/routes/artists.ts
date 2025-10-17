@@ -26,11 +26,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     }
 
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const subscriptions = await ytService.getSubscriptions();
+    const result = await ytService.getSubscriptions();
 
     // 各チャンネルの最新動画のサムネイルを取得
     const enrichedSubscriptions = await Promise.all(
-      subscriptions.map(async (sub: any) => {
+      result.items.map(async (sub: any) => {
         try {
           const channelId = sub.snippet?.resourceId?.channelId;
           if (channelId) {
@@ -101,11 +101,11 @@ router.get('/new-releases', async (req: AuthRequest, res: Response) => {
     }
 
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const subscriptions = await ytService.getSubscriptions();
+    const result = await ytService.getSubscriptions();
     const allNewReleases = [];
 
     // 各チャンネルの最新動画を取得（最大5件ずつ）
-    for (const sub of subscriptions) {
+    for (const sub of result.items) {
       const channelId = sub.snippet?.resourceId?.channelId;
       if (channelId) {
         const videos = await ytService.getChannelVideos(channelId, 5);

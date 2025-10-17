@@ -92,14 +92,28 @@
   padding: 12px;
   border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
   text-align: center;
   position: relative;
   width: 150px;
+  animation: fadeInUp 0.5s ease;
 }
 
 .item-card:hover {
   background-color: #3a3a3a;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .new-badge {
@@ -121,6 +135,11 @@
   object-fit: cover;
   border-radius: 6px;
   margin-bottom: 8px;
+  transition: transform 0.3s ease;
+}
+
+.item-card:hover img {
+  transform: scale(1.05);
 }
 
 .item-card p {
@@ -136,4 +155,91 @@
   font-size: 14px;
   padding: 24px;
   text-align: center;
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+  .home-page h1 {
+    font-size: 28px;
+    margin-bottom: 24px;
+  }
+
+  .category-section {
+    padding: 16px;
+    margin-bottom: 32px;
+  }
+
+  .category-section h2 {
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+
+  .subsection-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .subsection-header select {
+    width: 100%;
+  }
+
+  .item-card {
+    width: 120px;
+    min-width: 120px;
+  }
+
+  .items-scroll {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-page h1 {
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+
+  .category-section {
+    padding: 12px;
+  }
+
+  .category-section h2 {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  .subsection-header h3 {
+    font-size: 18px;
+  }
+
+  .item-card {
+    width: 100px;
+    min-width: 100px;
+    padding: 8px;
+  }
+
+  .item-card p {
+    font-size: 12px;
+  }
+}
+
+/* スムーズスクロール */
+html {
+  scroll-behavior: smooth;
+}
+
+/* セクションのフェードインアニメーション */
+.category-section,
+.latest-section {
+  animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

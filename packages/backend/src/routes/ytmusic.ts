@@ -32,20 +32,25 @@ router.get('/auth/status', authenticate, async (req: AuthRequest, res: Response)
  * GET /api/ytmusic/playlists
  * YouTube Musicプレイリスト一覧を取得
  * プレイリスト名や説明から音楽系のもののみをフィルタリング
+ * クエリパラメータ: pageToken (オプション)
  */
 router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const { pageToken } = req.query;
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const allPlaylists = await ytService.getPlaylists();
+    const result = await ytService.getPlaylists(pageToken as string | undefined);
 
-    const musicPlaylists = allPlaylists.filter((playlist: any) =>
+    const musicPlaylists = result.items.filter((playlist: any) =>
       ytService.isMusicPlaylist(playlist)
     );
 
-    res.json(musicPlaylists);
+    res.json({
+      items: musicPlaylists,
+      nextPageToken: result.nextPageToken
+    });
   } catch (error: any) {
     console.error('Error fetching YouTube Music playlists:', error);
-    res.json([]);
+    res.json({ items: [], nextPageToken: undefined });
   }
 });
 
@@ -63,14 +68,14 @@ router.get('/playlists/:id', authenticate, async (req: AuthRequest, res: Respons
     }
 
     // プレイリストのアイテムも取得
-    const items = await ytService.getPlaylistItems(req.params.id);
+    const itemsResult = await ytService.getPlaylistItems(req.params.id);
 
     const transformedPlaylist = {
       _id: playlist.id,
       name: playlist.snippet?.title || '',
       description: playlist.snippet?.description || '',
       thumbnail: playlist.snippet?.thumbnails?.default?.url,
-      songs: items.map((item: any) => ({
+      songs: itemsResult.items.map((item: any) => ({
         videoId: item.snippet?.resourceId?.videoId,
         title: item.snippet?.title,
         artist: item.snippet?.videoOwnerChannelTitle || 'Unknown Artist',

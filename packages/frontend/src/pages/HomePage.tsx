@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { channelsApi, playlistsApi, artistsApi, ytmusicApi, youtubeDataApi, recommendationsApi } from '../api/client'
+import SkeletonLoader from '../components/SkeletonLoader'
 import './HomePage.css'
 
 function HomePage() {
@@ -174,7 +175,7 @@ function HomePage() {
       <section className="latest-section" style={{ marginBottom: '32px', backgroundColor: '#1a1a1a', padding: '24px', borderRadius: '12px', border: '1px solid #2a2a2a' }}>
         <h2>🆕 最新情報</h2>
         {loadingLatest ? (
-          <p>読み込み中...</p>
+          <SkeletonLoader type="video" count={5} />
         ) : latestVideos.length > 0 ? (
           <div className="items-scroll">
             {latestVideos.map((video: any, idx: number) => (
@@ -303,7 +304,7 @@ function HomePage() {
       <section style={{ marginBottom: '32px', backgroundColor: '#1a1a1a', padding: '24px', borderRadius: '12px', border: '1px solid #2a2a2a' }}>
         <h2 style={{ fontSize: '28px', marginBottom: '24px', color: '#ff0000' }}>🤖 AIおすすめ</h2>
         {loadingRecs ? (
-          <p>読み込み中...</p>
+          <SkeletonLoader type="video" count={5} />
         ) : recommendations.length > 0 ? (
           <div className="items-scroll">
             {recommendations.map((rec: any, idx: number) => (

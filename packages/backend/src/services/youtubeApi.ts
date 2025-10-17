@@ -12,7 +12,7 @@ interface CacheEntry {
 }
 
 const cache = new Map<string, CacheEntry>();
-const CACHE_TTL = 30 * 60 * 1000; // 30分（クォータ節約）
+const CACHE_TTL = 60 * 60 * 1000; // 60分（クォータ節約強化: 30分→60分）
 
 export class YouTubeApiService {
   private youtube: youtube_v3.Youtube;
@@ -53,10 +53,11 @@ export class YouTubeApiService {
 
   /**
    * ユーザーのプレイリスト一覧を取得
-   * @returns プレイリストの配列
+   * @param pageToken ページネーション用トークン（オプション）
+   * @returns プレイリストの配列とnextPageToken
    */
-  async getPlaylists() {
-    const cacheKey = 'playlists';
+  async getPlaylists(pageToken?: string) {
+    const cacheKey = `playlists:${pageToken || 'initial'}`;
     const cached = this.getFromCache(cacheKey);
     if (cached) return cached;
 
@@ -64,14 +65,19 @@ export class YouTubeApiService {
       const response = await this.youtube.playlists.list({
         part: ['snippet', 'contentDetails'],
         mine: true,
-        maxResults: 50
+        maxResults: 25, // クォータ削減: 50 → 25
+        pageToken,
+        fields: 'items(id,snippet(title,description,thumbnails),contentDetails(itemCount)),nextPageToken' // 必要なフィールドのみ
       });
-      const items = response.data.items || [];
-      this.setCache(cacheKey, items);
-      return items;
+      const result = {
+        items: response.data.items || [],
+        nextPageToken: response.data.nextPageToken
+      };
+      this.setCache(cacheKey, result);
+      return result;
     } catch (error) {
       this.handleApiError(error, 'getPlaylists');
-      return [];
+      return { items: [], nextPageToken: undefined };
     }
   }
 
@@ -123,7 +129,8 @@ export class YouTubeApiService {
   async getPlaylist(playlistId: string) {
     const response = await this.youtube.playlists.list({
       part: ['snippet', 'contentDetails'],
-      id: [playlistId]
+      id: [playlistId],
+      fields: 'items(id,snippet(title,description,thumbnails),contentDetails(itemCount))' // 必要なフィールドのみ
     });
     return response.data.items?.[0];
   }
@@ -140,7 +147,8 @@ export class YouTubeApiService {
       requestBody: {
         snippet: { title, description },
         status: { privacyStatus: 'private' } // デフォルトでプライベート
-      }
+      },
+      fields: 'id,snippet(title,description),status' // 必要なフィールドのみ
     });
     return response.data;
   }
@@ -158,7 +166,8 @@ export class YouTubeApiService {
       requestBody: {
         id: playlistId,
         snippet: { title, description }
-      }
+      },
+      fields: 'id,snippet(title,description)' // 必要なフィールドのみ
     });
     return response.data;
   }
@@ -178,15 +187,21 @@ export class YouTubeApiService {
   /**
    * プレイリスト内のアイテム（曲/動画）一覧を取得
    * @param playlistId プレイリストID
-   * @returns プレイリストアイテムの配列
+   * @param pageToken ページネーション用トークン（オプション）
+   * @returns プレイリストアイテムの配列とnextPageToken
    */
-  async getPlaylistItems(playlistId: string) {
+  async getPlaylistItems(playlistId: string, pageToken?: string) {
     const response = await this.youtube.playlistItems.list({
-      part: ['snippet', 'contentDetails'],
+      part: ['snippet'], // contentDetailsは不要（videoIdはsnippet.resourceIdで取得可能）
       playlistId,
-      maxResults: 50
+      maxResults: 25, // クォータ削減: 50 → 25
+      pageToken,
+      fields: 'items(id,snippet(title,thumbnails,resourceId)),nextPageToken' // 必要なフィールドのみ
     });
-    return response.data.items || [];
+    return {
+      items: response.data.items || [],
+      nextPageToken: response.data.nextPageToken
+    };
   }
 
   /**
@@ -203,7 +218,8 @@ export class YouTubeApiService {
           playlistId,
           resourceId: { kind: 'youtube#video', videoId }
         }
-      }
+      },
+      fields: 'id,snippet(title,resourceId)' // 必要なフィールドのみ
     });
     return response.data;
   }
@@ -222,10 +238,11 @@ export class YouTubeApiService {
 
   /**
    * ユーザーの登録チャンネル一覧を取得
-   * @returns 登録チャンネルの配列
+   * @param pageToken ページネーション用トークン（オプション）
+   * @returns 登録チャンネルの配列とnextPageToken
    */
-  async getSubscriptions() {
-    const cacheKey = 'subscriptions';
+  async getSubscriptions(pageToken?: string) {
+    const cacheKey = `subscriptions:${pageToken || 'initial'}`;
     const cached = this.getFromCache(cacheKey);
     if (cached) return cached;
 
@@ -233,14 +250,19 @@ export class YouTubeApiService {
       const response = await this.youtube.subscriptions.list({
         part: ['snippet', 'contentDetails'],
         mine: true,
-        maxResults: 50
+        maxResults: 25, // クォータ削減: 50 → 25
+        pageToken,
+        fields: 'items(id,snippet(title,description,thumbnails,resourceId),contentDetails),nextPageToken' // 必要なフィールドのみ
       });
-      const items = response.data.items || [];
-      this.setCache(cacheKey, items);
-      return items;
+      const result = {
+        items: response.data.items || [],
+        nextPageToken: response.data.nextPageToken
+      };
+      this.setCache(cacheKey, result);
+      return result;
     } catch (error) {
       this.handleApiError(error, 'getSubscriptions');
-      return [];
+      return { items: [], nextPageToken: undefined };
     }
   }
 
@@ -256,7 +278,8 @@ export class YouTubeApiService {
         snippet: {
           resourceId: { kind: 'youtube#channel', channelId }
         }
-      }
+      },
+      fields: 'id,snippet(title,resourceId)' // 必要なフィールドのみ
     });
     return response.data;
   }

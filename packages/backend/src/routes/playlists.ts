@@ -15,20 +15,25 @@ router.use(authenticate);
  * GET /api/playlists
  * ユーザーのプレイリスト一覧を取得
  * 音楽系プレイリストを除外し、動画系のもののみをフィルタリング
+ * クエリパラメータ: pageToken (オプション)
  */
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
+    const { pageToken } = req.query;
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const allPlaylists = await ytService.getPlaylists();
+    const result = await ytService.getPlaylists(pageToken as string | undefined);
 
-    const videoPlaylists = allPlaylists.filter((playlist: any) =>
+    const videoPlaylists = result.items.filter((playlist: any) =>
       !ytService.isMusicPlaylist(playlist)
     );
 
-    res.json(videoPlaylists);
+    res.json({
+      items: videoPlaylists,
+      nextPageToken: result.nextPageToken
+    });
   } catch (error) {
     console.error('Error fetching playlists:', error);
-    res.json([]);
+    res.json({ items: [], nextPageToken: undefined });
   }
 });
 

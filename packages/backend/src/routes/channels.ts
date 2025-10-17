@@ -26,11 +26,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     }
 
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const subscriptions = await ytService.getSubscriptions();
+    const result = await ytService.getSubscriptions();
 
     // 各チャンネルの最新動画のサムネイルを取得
     const enrichedSubscriptions = await Promise.all(
-      subscriptions.map(async (sub: any) => {
+      result.items.map(async (sub: any) => {
         try {
           const channelId = sub.snippet?.resourceId?.channelId;
           if (channelId) {

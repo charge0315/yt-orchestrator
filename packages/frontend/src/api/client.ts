@@ -39,22 +39,22 @@ export interface Song {
  * プレイリストの型
  */
 export interface Playlist {
-  _id: string
+  id: string
   name: string
   description?: string
   songs: Song[]
-  userId: string
-  createdAt: Date
-  updatedAt: Date
+  userId?: string
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export interface Artist {
-  _id: string
+  id: string
   name: string
   artistId: string
   thumbnail?: string
   newReleases: NewRelease[]
-  subscribedAt: Date
+  subscribedAt?: Date
 }
 
 export interface NewRelease {
@@ -65,12 +65,12 @@ export interface NewRelease {
 }
 
 export interface Channel {
-  _id: string
+  id: string
   name: string
   channelId: string
   thumbnail?: string
   description?: string
-  subscribedAt: Date
+  subscribedAt?: Date
 }
 
 export interface Recommendation {
@@ -186,25 +186,25 @@ export interface Video {
 }
 
 export interface YouTubePlaylist {
-  _id: string
+  id: string
   name: string
   description?: string
   videos: Video[]
-  userId: string
-  createdAt: Date
-  updatedAt: Date
+  userId?: string
+  createdAt?: Date
+  updatedAt?: Date
 }
 
 export interface YouTubeChannel {
-  _id: string
+  id: string
   name: string
   channelId: string
   thumbnail?: string
   description?: string
   subscriberCount?: string
   latestVideos: LatestVideo[]
-  userId: string
-  subscribedAt: Date
+  userId?: string
+  subscribedAt?: Date
   lastChecked?: Date
 }
 
