@@ -15,9 +15,7 @@ import artistRoutes from './routes/artists.js';
 import channelRoutes from './routes/channels.js';
 import recommendationRoutes from './routes/recommendations.js';
 import authRoutes from './routes/auth.js';
-import youtubePlaylistRoutes from './routes/youtubePlaylists.js';
-import youtubeChannelRoutes from './routes/youtubeChannels.js';
-import youtubeRecommendationRoutes from './routes/youtubeRecommendations.js';
+
 import youtubeRoutes from './routes/youtube.js';
 import ytmusicRoutes from './routes/ytmusic.js';
 import path from 'path';
@@ -100,9 +98,6 @@ app.use('/api/ytmusic', ytmusicRoutes);
 
 // プレイリストルート
 app.use('/api/playlists', playlistRoutes);
-app.use('/api/youtube/playlists', youtubePlaylistRoutes);
-app.use('/api/youtube/channels', youtubeChannelRoutes);
-app.use('/api/youtube/recommendations', youtubeRecommendationRoutes);
 
 // ヘルスチェックエンドポイント
 app.get('/api/health', (req, res) => {
