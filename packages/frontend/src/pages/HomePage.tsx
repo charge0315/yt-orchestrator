@@ -17,6 +17,7 @@ function HomePage() {
   const [loadingLatest, setLoadingLatest] = useState(true)
   const [recommendations, setRecommendations] = useState<any[]>([])
   const [loadingRecs, setLoadingRecs] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
     loadData()
@@ -25,10 +26,18 @@ function HomePage() {
   const loadData = async () => {
     try {
       const [channelsRes, playlistsRes, artistsRes] = await Promise.all([
-        channelsApi.getAll().catch((err) => { console.log('Channels error:', err.response?.status); return { data: [] } }),
-        playlistsApi.getAll().catch((err) => { console.log('Playlists error:', err.response?.status); return { data: [] } }),
-        artistsApi.getAll().catch((err) => { console.log('Artists error:', err.response?.status); return { data: [] } })
+        channelsApi.getAll().catch((err) => { 
+          if (err.response?.status === 401 || err.response?.status === 500) setIsAuthenticated(false)
+          return { data: [] } 
+        }),
+        playlistsApi.getAll().catch((err) => { return { data: [] } }),
+        artistsApi.getAll().catch((err) => { return { data: [] } })
       ])
+      
+      if (channelsRes.data?.length > 0 || playlistsRes.data?.length > 0 || artistsRes.data?.length > 0) {
+        setIsAuthenticated(true)
+      }
+      
       setChannels(channelsRes.data || [])
       setPlaylists(playlistsRes.data || [])
       setArtists(artistsRes.data || [])
@@ -115,6 +124,19 @@ function HomePage() {
   return (
     <div className="home-page">
       <h1>YouTube Orchestrator</h1>
+      
+      {!isAuthenticated && (
+        <div style={{ backgroundColor: '#2a2a2a', padding: '20px', borderRadius: '8px', marginBottom: '24px', border: '2px solid #ff0000' }}>
+          <h3 style={{ color: '#ff0000', marginBottom: '12px' }}>🔐 ログインが必要です</h3>
+          <p style={{ marginBottom: '12px' }}>YouTube Orchestratorの機能を使用するには、Googleアカウントでログインしてください。</p>
+          <button 
+            onClick={() => window.location.href = 'http://localhost:3001/api/auth/google'}
+            style={{ backgroundColor: '#ff0000', color: 'white', padding: '12px 24px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}
+          >
+            Googleでログイン
+          </button>
+        </div>
+      )}
 
       <section className="latest-section" style={{ marginBottom: '32px', backgroundColor: '#1a1a1a', padding: '24px', borderRadius: '12px', border: '1px solid #2a2a2a' }}>
         <h2>🆕 最新情報</h2>
@@ -134,6 +156,8 @@ function HomePage() {
               </div>
             ))}
           </div>
+        ) : !isAuthenticated ? (
+          <p style={{ color: '#666' }}>ログインすると最新動画が表示されます</p>
         ) : (
           <p style={{ color: '#666' }}>登録チャンネルがありません</p>
         )}
@@ -160,7 +184,7 @@ function HomePage() {
                 <p>{ch.snippet?.title}</p>
               </div>
             ))}
-            {channels.length === 0 && <p className="empty">登録チャンネルがありません</p>}
+            {channels.length === 0 && <p className="empty">{!isAuthenticated ? 'ログインしてください' : '登録チャンネルがありません'}</p>}
           </div>
         </div>
 
@@ -181,7 +205,7 @@ function HomePage() {
                 <p>{pl.snippet?.title || pl.name}</p>
               </div>
             ))}
-            {playlists.length === 0 && <p className="empty">再生リストがありません</p>}
+            {playlists.length === 0 && <p className="empty">{!isAuthenticated ? 'ログインしてください' : '再生リストがありません'}</p>}
           </div>
         </div>
       </section>
@@ -207,7 +231,7 @@ function HomePage() {
                 <p>{artist.snippet?.title}</p>
               </div>
             ))}
-            {artists.length === 0 && <p className="empty">登録アーティストがありません</p>}
+            {artists.length === 0 && <p className="empty">{!isAuthenticated ? 'ログインしてください' : '登録アーティストがありません'}</p>}
           </div>
         </div>
 
@@ -228,7 +252,7 @@ function HomePage() {
                 <p>{pl.name}</p>
               </div>
             ))}
-            {ytmPlaylists.length === 0 && <p className="empty">プレイリストがありません</p>}
+            {ytmPlaylists.length === 0 && <p className="empty">{!isAuthenticated ? 'ログインしてください' : 'プレイリストがありません'}</p>}
           </div>
         </div>
       </section>
@@ -251,6 +275,8 @@ function HomePage() {
               </div>
             ))}
           </div>
+        ) : !isAuthenticated ? (
+          <p style={{ color: '#666' }}>ログインするとAIおすすめが表示されます</p>
         ) : (
           <p style={{ color: '#666' }}>おすすめを生成するにはチャンネルを登録してください</p>
         )}
