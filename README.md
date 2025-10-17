@@ -57,8 +57,7 @@ YouTube Orchestratorは、YouTubeとYouTube Musicの体験を向上させるた�
 
 ### バックエンド
 - **🚀 Express.js** - Webフレームワーク
-- **🗄️ MongoDB** - ユーザー認証データベース
-- **🦦 Mongoose** - ODM（Object Document Mapper）
+- **🍪 Express Session** - セッション管理
 - **📘 TypeScript** - 型安全性
 - **📺 googleapis** - YouTube Data API v3統合
 - **🎵 ytmusic-api** - YouTube Music API統合
@@ -91,7 +90,6 @@ yt-orchestrator/
 ### 必要要件
 
 - Node.js 18.0.0以上
-- MongoDB（ローカルまたはMongoDB Atlas）
 - npm または yarn
 
 ### インストール
@@ -146,11 +144,10 @@ cp .env.example .env
 ```
 PORT=3001
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/yt-orchestrator
 GOOGLE_CLIENT_ID=your_google_client_id_here
 GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 OPENAI_API_KEY=your_openai_api_key_here
-JWT_SECRET=your_random_secret_key_here
+SESSION_SECRET=your_random_secret_key_here
 FRONTEND_URL=http://localhost:5173
 ```
 
@@ -241,9 +238,10 @@ npm test
 ## 🏗️ アーキテクチャの特徴
 
 ### データ管理
-- **ユーザー認証**: MongoDBで管理（JWT + Google OAuth）
-- **プレイリスト・チャンネル**: YouTube Data API v3と直接統合（MongoDBに保存せず）
+- **セッション管理**: Express Sessionでメモリ内管理（Google OAuth）
+- **プレイリスト・チャンネル**: YouTube Data API v3と直接統合
 - **リアルタイム同期**: YouTubeと常に同期された状態を維持
+- **キャッシング**: メモリキャッシュでAPI呼び出しを削減
 
 ### AI機能
 - OpenAI GPT-3.5-turboを使用

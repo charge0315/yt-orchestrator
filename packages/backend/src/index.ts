@@ -98,7 +98,7 @@ app.use('/api/youtube', youtubeRoutes);
 // YouTube Music API連携ルート
 app.use('/api/ytmusic', ytmusicRoutes);
 
-// MongoDBフォールバックルート（後方互換性のため）
+// プレイリストルート
 app.use('/api/playlists', playlistRoutes);
 app.use('/api/youtube/playlists', youtubePlaylistRoutes);
 app.use('/api/youtube/channels', youtubeChannelRoutes);
