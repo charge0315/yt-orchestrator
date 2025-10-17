@@ -1,15 +1,31 @@
+/**
+ * APIクライアント設定
+ * バックエンドAPIとの通信を管理
+ */
 import axios from 'axios'
 
+// バックエンドAPIのベースURL（環境変数から取得、デフォルトはlocalhost）
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
 
+/**
+ * Axiosクライアントインスタンス
+ * すべてのAPI呼び出しで使用される共通設定
+ */
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json'
   },
-  withCredentials: true // Enable cookies for authentication
+  withCredentials: true // Cookie認証を有効化
 })
 
+// ========================================
+// 型定義
+// ========================================
+
+/**
+ * 曲/動画の型
+ */
 export interface Song {
   videoId: string
   title: string
@@ -19,6 +35,9 @@ export interface Song {
   addedAt?: Date
 }
 
+/**
+ * プレイリストの型
+ */
 export interface Playlist {
   _id: string
   name: string
@@ -63,7 +82,14 @@ export interface Recommendation {
   duration?: string
 }
 
-// Playlists API
+// ========================================
+// API エンドポイント
+// ========================================
+
+/**
+ * プレイリストAPI
+ * YouTube Data API v3と直接連携
+ */
 export const playlistsApi = {
   getAll: () => apiClient.get<Playlist[]>('/playlists'),
   getById: (id: string) => apiClient.get<Playlist>(`/playlists/${id}`),
@@ -78,7 +104,10 @@ export const playlistsApi = {
     apiClient.delete<Playlist>(`/playlists/${id}/songs/${videoId}`)
 }
 
-// Artists API
+/**
+ * アーティスト（YouTube Musicチャンネル）API
+ * チャンネル登録とアーティストの最新動画を管理
+ */
 export const artistsApi = {
   getAll: () => apiClient.get<any[]>('/artists'),
   subscribe: (data: { channelId: string }) =>
@@ -87,7 +116,10 @@ export const artistsApi = {
   getNewReleases: () => apiClient.get<any[]>('/artists/new-releases')
 }
 
-// Channels API
+/**
+ * チャンネルAPI
+ * YouTubeチャンネルの登録を管理
+ */
 export const channelsApi = {
   getAll: () => apiClient.get<any[]>('/channels'),
   subscribe: (data: { channelId: string }) =>
@@ -95,28 +127,42 @@ export const channelsApi = {
   unsubscribe: (id: string) => apiClient.delete(`/channels/${id}`)
 }
 
-// Recommendations API
+/**
+ * おすすめAPI
+ * OpenAI GPT-3.5によるチャンネル・アーティストのおすすめを取得
+ */
 export const recommendationsApi = {
   get: () => apiClient.get<Recommendation[]>('/recommendations')
 }
 
-// Songs API
+/**
+ * 曲検索API
+ */
 export const songsApi = {
   search: (query: string) => apiClient.get('/songs/search', { params: { query } })
 }
 
-// Auth API
+/**
+ * ユーザー情報の型
+ */
 export interface User {
   id: string
   email: string
   name: string
 }
 
+/**
+ * 認証レスポンスの型
+ */
 export interface AuthResponse {
   user: User
   token: string
 }
 
+/**
+ * 認証API
+ * ユーザー登録、ログイン、Google OAuth認証
+ */
 export const authApi = {
   register: (data: { email: string; password: string; name: string }) =>
     apiClient.post<AuthResponse>('/auth/register', data),

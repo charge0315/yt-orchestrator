@@ -59,7 +59,7 @@ function YouTubePlaylistDetailPage() {
       setSearchResults(response.data as Video[])
     } catch (error) {
       console.error('Search failed:', error)
-      alert('動画の検索に失敗しました')
+      console.error('動画の検索に失敗しました')
     } finally {
       setIsSearchLoading(false)
     }

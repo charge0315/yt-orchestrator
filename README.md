@@ -1,63 +1,68 @@
-# YouTube Orchestrator
+# 🎵 YouTube Orchestrator
 
-YouTubeとYouTube Musicのオーケストレータ - 音楽・動画管理をより便利にするWebアプリケーション
+YouTubeとYouTube Musicのオーケストレータ - 音楽・動画管理をより便利にするWebアプリケーション 🎬
 
 ## 概要
 
 YouTube Orchestratorは、YouTubeとYouTube Musicの体験を向上させるための包括的な管理ツールです。YouTube Data API v3と直接統合し、プレイリスト管理、AIによるおすすめ、アーティストの新曲追跡、チャンネル管理など、様々な機能を提供します。
 
-## 機能
+## ✨ 機能
 
-- **ホームページ**
+- **🏠 ホームページ**
   - 最新動画の横スクロール表示
   - YouTube（チャンネル・プレイリスト）セクション
   - YouTube Music（アーティスト・プレイリスト）セクション
   - AIによるおすすめセクション
   - 各セクションでソート機能（最新順/名前順）
 
-- **プレイリスト管理**
+- **📝 プレイリスト管理**
   - YouTube Data API v3と直接統合
   - プレイリストの一覧表示・作成・削除
   - プレイリストへの曲の追加・削除
   - リアルタイムでYouTubeと同期
+  - 音楽プレイリストと動画プレイリストの自動判定
 
-- **AIによるおすすめ**
+- **🤖 AIによるおすすめ**
   - OpenAI GPT-3.5を使用した高度なおすすめアルゴリズム
   - ユーザーの登録チャンネルに基づいた新しいチャンネル・アーティストの提案
   - おすすめ理由の表示
+  - OpenAI APIキー未設定時のフォールバック処理（登録チャンネルの最新動画を表示）
 
-- **アーティスト追跡**
+- **🎤 アーティスト追跡**
   - YouTube Data API v3のチャンネル登録機能を使用
   - 登録アーティストの新曲一覧表示（7日以内にNEWバッジ表示）
   - アーティストの登録・登録解除
+  - 各アーティストの最新5動画を一覧表示
 
-- **チャンネル管理**
+- **📺 チャンネル管理**
   - YouTube Data API v3のチャンネル登録機能を使用
   - 登録チャンネルの一覧表示
   - チャンネルの登録・登録解除
+  - 各チャンネルの最新動画サムネイル表示
 
-- **認証**
+- **🔐 認証**
   - Google OAuth 2.0認証
   - YouTubeアクセストークンの自動管理
+  - Cookieベースのセッション管理
 
-## 技術スタック
+## 🛠️ 技術スタック
 
 ### フロントエンド
-- **React** - UIライブラリ
-- **Vite** - ビルドツール
-- **React Router** - ルーティング
-- **TanStack Query** - データフェッチング・キャッシング
-- **Axios** - HTTPクライアント
-- **TypeScript** - 型安全性
+- **⚛️ React** - UIライブラリ
+- **⚡ Vite** - ビルドツール
+- **🗺️ React Router** - ルーティング
+- **🔄 TanStack Query** - データフェッチング・キャッシング
+- **📡 Axios** - HTTPクライアント
+- **📘 TypeScript** - 型安全性
 
 ### バックエンド
-- **Express.js** - Webフレームワーク
-- **MongoDB** - ユーザー認証データベース
-- **Mongoose** - ODM（Object Document Mapper）
-- **TypeScript** - 型安全性
-- **googleapis** - YouTube Data API v3統合
-- **ytmusic-api** - YouTube Music API統合
-- **OpenAI API** - AIおすすめ機能（GPT-3.5-turbo）
+- **🚀 Express.js** - Webフレームワーク
+- **🗄️ MongoDB** - ユーザー認証データベース
+- **🦦 Mongoose** - ODM（Object Document Mapper）
+- **📘 TypeScript** - 型安全性
+- **📺 googleapis** - YouTube Data API v3統合
+- **🎵 ytmusic-api** - YouTube Music API統合
+- **🤖 OpenAI API** - AIおすすめ機能（GPT-3.5-turbo）
 
 ## プロジェクト構造
 
@@ -233,7 +238,7 @@ npm run build
 npm test
 ```
 
-## アーキテクチャの特徴
+## 🏗️ アーキテクチャの特徴
 
 ### データ管理
 - **ユーザー認証**: MongoDBで管理（JWT + Google OAuth）
@@ -244,15 +249,42 @@ npm test
 - OpenAI GPT-3.5-turboを使用
 - ユーザーの登録チャンネルを分析
 - 新しいチャンネル・アーティストを理由付きで提案
+- APIキー未設定時の自動フォールバック機能
 
-## 今後の改善予定
+### コード品質
+- **JSDocコメント**: すべてのメソッドに詳細なドキュメントを追加
+- **エラーハンドリング**: 適切なログ出力（`console.error`, `console.log`）
+- **型安全性**: TypeScriptによる厳格な型チェック
+- **キャッシング**: レスポンス高速化のためのキャッシュ機能実装
 
-- YouTube Music API との完全統合（ytmusic-api互換性問題の解決）
-- プレイリストのインポート/エクスポート機能
-- 楽曲の検索機能の強化
-- 動画再生機能の統合
-- パフォーマンス最適化（キャッシング）
-- YouTube Data API v3のクォータ管理
+## 🔄 最近の更新
+
+### 2025年10月版
+- ✅ **YouTubeApiServiceの改善**
+  - 動画検索機能を追加（`searchVideos`メソッド）
+  - プレイリスト音楽判定機能（`isMusicPlaylist`メソッド）
+  - 全メソッドにJSDocコメントを追加
+  - コードの可読性とメンテナンス性を向上
+
+- ✅ **エラーハンドリングの改善**
+  - `alert`を全て`console.error`/`console.log`に置き換え
+  - デバッグしやすいログ出力に統一
+
+- ✅ **AIおすすめ機能の強化**
+  - OpenAI APIキー未設定時のフォールバック処理を実装
+  - 登録チャンネルの最新動画を自動表示
+
+- ✅ **バグ修正**
+  - `recommendations.ts`での変数重複宣言を修正
+
+## 📋 今後の改善予定
+
+- 🔜 YouTube Music API との完全統合（ytmusic-api互換性問題の解決）
+- 🔜 プレイリストのインポート/エクスポート機能
+- 🔜 楽曲の検索機能の強化
+- 🔜 動画再生機能の統合
+- 🔜 YouTube Data API v3のクォータ管理
+- 🔜 プレイリストのソート・フィルター機能
 
 ## ライセンス
 

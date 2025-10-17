@@ -10,7 +10,7 @@ function AuthCallbackPage() {
     
     if (error) {
       console.error('Authentication error:', error)
-      alert('認証に失敗しました。もう一度お試しください。')
+      console.error('認証に失敗しました。もう一度お試しください。')
     }
     
     // Redirect to home page

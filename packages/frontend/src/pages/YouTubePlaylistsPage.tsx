@@ -73,7 +73,7 @@ function YouTubePlaylistsPage() {
       window.location.href = response.data.url
     } catch (error) {
       console.error('Failed to get YouTube auth URL:', error)
-      alert('YouTube連携URLの取得に失敗しました')
+      console.error('YouTube連携URLの取得に失敗しました')
     }
   }
 

@@ -24,7 +24,8 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nConnect frontend to YouTube Data API\n\nフロントエンドをYouTube Data APIに接続しました。\n- YouTube OAuth連携ボタンを追加\n- OAuth callbackページを実装\n- PlaylistsPageをYouTube API直接連携に変更\n- MongoDBへの参照を削除し、YouTube APIから直接データを取得\n\n動作確認：\n- YouTube連携ボタンをクリックしてOAuth認証\n- 認証後、実際のYouTubeプレイリストが表示される\n- プレイリストの作成・削除がYouTube APIで直接行われる\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git commit:*)",
       "Bash(git push)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

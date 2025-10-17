@@ -1,3 +1,11 @@
+/**
+ * ホームページコンポーネント
+ * YouTube Orchestratorのメイン画面
+ * - 最新動画の横スクロール表示
+ * - YouTubeチャンネル・プレイリスト
+ * - YouTube Musicアーティスト・プレイリスト
+ * - AIおすすめセクション
+ */
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { channelsApi, playlistsApi, artistsApi, ytmusicApi, youtubeDataApi, recommendationsApi } from '../api/client'
@@ -5,48 +13,65 @@ import './HomePage.css'
 
 function HomePage() {
   const navigate = useNavigate()
-  const [channels, setChannels] = useState<any[]>([])
-  const [playlists, setPlaylists] = useState<any[]>([])
-  const [artists, setArtists] = useState<any[]>([])
-  const [ytmPlaylists, setYtmPlaylists] = useState<any[]>([])
+
+  // 各種データの状態管理
+  const [channels, setChannels] = useState<any[]>([]) // YouTubeチャンネル
+  const [playlists, setPlaylists] = useState<any[]>([]) // YouTube再生リスト
+  const [artists, setArtists] = useState<any[]>([]) // YouTube Musicアーティスト
+  const [ytmPlaylists, setYtmPlaylists] = useState<any[]>([]) // YouTube Musicプレイリスト
+
+  // ソート設定
   const [channelSort, setChannelSort] = useState<'recent' | 'name'>('recent')
   const [playlistSort, setPlaylistSort] = useState<'recent' | 'name'>('recent')
   const [artistSort, setArtistSort] = useState<'recent' | 'name'>('recent')
   const [ytmPlaylistSort, setYtmPlaylistSort] = useState<'recent' | 'name'>('recent')
+
+  // 最新動画とおすすめ
   const [latestVideos, setLatestVideos] = useState<any[]>([])
   const [loadingLatest, setLoadingLatest] = useState(true)
   const [recommendations, setRecommendations] = useState<any[]>([])
   const [loadingRecs, setLoadingRecs] = useState(true)
+
+  // 認証状態
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
+  // 初回レンダリング時にデータをロード
   useEffect(() => {
     loadData()
   }, [])
 
+  /**
+   * すべてのデータをロードする
+   */
   const loadData = async () => {
     try {
+      // チャンネル、プレイリスト、アーティストを並行して取得
       const [channelsRes, playlistsRes, artistsRes] = await Promise.all([
-        channelsApi.getAll().catch((err) => { 
+        channelsApi.getAll().catch((err) => {
+          // 認証エラーの場合は未認証状態に設定
           if (err.response?.status === 401 || err.response?.status === 500) setIsAuthenticated(false)
-          return { data: [] } 
+          return { data: [] }
         }),
         playlistsApi.getAll().catch((err) => { return { data: [] } }),
         artistsApi.getAll().catch((err) => { return { data: [] } })
       ])
-      
+
+      // データが1つでも存在すれば認証済みと判定
       if (channelsRes.data?.length > 0 || playlistsRes.data?.length > 0 || artistsRes.data?.length > 0) {
         setIsAuthenticated(true)
       }
-      
+
       setChannels(channelsRes.data || [])
       setPlaylists(playlistsRes.data || [])
       setArtists(artistsRes.data || [])
-      
+
+      // YouTube Musicプレイリストを取得（エラーは無視）
       try {
         const ytmRes = await ytmusicApi.getPlaylists()
         setYtmPlaylists(ytmRes.data || [])
       } catch {}
 
+      // 最新動画とおすすめを読み込み
       await loadLatestVideos([...channelsRes.data, ...artistsRes.data])
       await loadRecommendations()
     } catch (error) {
@@ -54,6 +79,9 @@ function HomePage() {
     }
   }
 
+  /**
+   * AIおすすめを読み込む
+   */
   const loadRecommendations = async () => {
     try {
       const response = await recommendationsApi.get()
@@ -66,6 +94,9 @@ function HomePage() {
     }
   }
 
+  /**
+   * 登録チャンネルの最新動画を読み込む（上位10件）
+   */
   const loadLatestVideos = async (allChannels: any[]) => {
     try {
       const response = await artistsApi.getNewReleases()
@@ -84,6 +115,9 @@ function HomePage() {
     }
   }
 
+  /**
+   * チャンネルが7日以内に更新されたかをチェック
+   */
   const hasRecentUpdate = (channel: any) => {
     const publishedAt = channel.snippet?.publishedAt || channel.contentDetails?.relatedPlaylists?.uploads
     if (!publishedAt) return false
@@ -91,6 +125,10 @@ function HomePage() {
     return daysSinceUpdate <= 7
   }
 
+  /**
+   * チャンネルをクリックした時の処理
+   * チャンネルの最新動画を新しいタブで開く
+   */
   const handleChannelClick = async (channel: any) => {
     try {
       const channelId = channel.snippet?.resourceId?.channelId || channel.id
@@ -105,6 +143,11 @@ function HomePage() {
     }
   }
 
+  /**
+   * アイテムをソート
+   * @param items ソート対象のアイテム配列
+   * @param sortType ソートタイプ（'recent': 登録順、'name': 名前順）
+   */
   const sortItems = (items: any[], sortType: 'recent' | 'name') => {
     const sorted = [...items]
     if (sortType === 'name') {
@@ -117,6 +160,9 @@ function HomePage() {
     return sorted
   }
 
+  /**
+   * 動画を新しいタブで再生
+   */
   const playVideo = (videoId: string) => {
     window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')
   }
@@ -178,8 +224,13 @@ function HomePage() {
             {sortItems(channels, channelSort).map((ch: any) => (
               <div key={ch.id} className="item-card" onClick={() => handleChannelClick(ch)}>
                 {hasRecentUpdate(ch) && <span className="new-badge">NEW</span>}
-                {ch.snippet?.thumbnails?.default?.url && (
-                  <img src={ch.snippet.thumbnails.default.url} alt={ch.snippet.title} />
+                {/* 最新動画のサムネイルを優先的に表示、なければチャンネルのサムネイル */}
+                {(ch.latestVideoThumbnail || ch.snippet?.thumbnails?.default?.url) && (
+                  <img
+                    src={ch.latestVideoThumbnail || ch.snippet.thumbnails.default.url}
+                    alt={ch.snippet.title}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
                 )}
                 <p>{ch.snippet?.title}</p>
               </div>
@@ -225,8 +276,13 @@ function HomePage() {
             {sortItems(artists, artistSort).map((artist: any) => (
               <div key={artist.id} className="item-card" onClick={() => handleChannelClick(artist)}>
                 {hasRecentUpdate(artist) && <span className="new-badge">NEW</span>}
-                {artist.snippet?.thumbnails?.default?.url && (
-                  <img src={artist.snippet.thumbnails.default.url} alt={artist.snippet.title} />
+                {/* 最新動画のサムネイルを優先的に表示、なければチャンネルのサムネイル */}
+                {(artist.latestVideoThumbnail || artist.snippet?.thumbnails?.default?.url) && (
+                  <img
+                    src={artist.latestVideoThumbnail || artist.snippet.thumbnails.default.url}
+                    alt={artist.snippet.title}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
                 )}
                 <p>{artist.snippet?.title}</p>
               </div>
@@ -264,13 +320,33 @@ function HomePage() {
         ) : recommendations.length > 0 ? (
           <div className="items-scroll">
             {recommendations.map((rec: any, idx: number) => (
-              <div key={idx} style={{ minWidth: '150px', width: '150px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }} onClick={() => navigate('/recommendations')}>
-                <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: '#3a3a3a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>
-                  🤖
-                </div>
+              <div
+                key={idx}
+                style={{ minWidth: '200px', width: '200px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }}
+                onClick={() => rec.videoId && playVideo(rec.videoId)}
+              >
+                {/* サムネイル画像 */}
+                {rec.thumbnail ? (
+                  <img
+                    src={rec.thumbnail}
+                    alt={rec.title}
+                    style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: '#3a3a3a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>
+                    🤖
+                  </div>
+                )}
                 <div style={{ padding: '12px' }}>
-                  <h4 style={{ fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{rec.title || rec.channelTitle}</h4>
-                  <p style={{ fontSize: '12px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>🎯 {rec.reason}</p>
+                  <h4 style={{ fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {rec.title || rec.channelTitle}
+                  </h4>
+                  <p style={{ fontSize: '12px', color: '#888', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {rec.channelTitle}
+                  </p>
+                  <p style={{ fontSize: '11px', color: '#4caf50', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                    🎯 {rec.reason}
+                  </p>
                 </div>
               </div>
             ))}

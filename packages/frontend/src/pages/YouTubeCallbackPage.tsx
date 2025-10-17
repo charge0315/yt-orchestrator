@@ -13,7 +13,7 @@ function YouTubeCallbackPage() {
 
       if (error) {
         console.error('YouTube OAuth error:', error);
-        alert('YouTube連携に失敗しました');
+        console.error('YouTube連携に失敗しました');
         navigate('/playlists');
         return;
       }
@@ -26,11 +26,11 @@ function YouTubeCallbackPage() {
 
       try {
         await youtubeDataApi.authCallback(code);
-        alert('YouTube連携に成功しました！');
+        console.log('YouTube連携に成功しました！');
         navigate('/playlists');
       } catch (error) {
         console.error('Failed to complete YouTube OAuth:', error);
-        alert('YouTube連携の完了に失敗しました');
+        console.error('YouTube連携の完了に失敗しました');
         navigate('/playlists');
       }
     };

@@ -1,30 +1,36 @@
+/**
+ * 認証ミドルウェア
+ * セッションベースの認証処理
+ */
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import '../types/session.js'; // セッション型定義をインポート
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
+/**
+ * 認証済みリクエストのインターフェース
+ * セッションデータにアクセス可能
+ */
 export interface AuthRequest extends Request {
-  userId?: string;
+  userId?: string; // セッションのuserIdを展開
 }
 
+/**
+ * 認証ミドルウェア
+ * セッションにuserIdが存在するかチェック
+ * @param req リクエスト
+ * @param res レスポンス
+ * @param next 次のミドルウェア
+ */
 export const authenticate = (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
-    // Get token from cookie or header
-    const token = req.cookies?.token || req.headers.authorization?.replace('Bearer ', '');
-
-    if (!token) {
+    // セッションにuserIdが存在するかチェック
+    if (!req.session || !req.session.userId) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Verify token
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-    req.userId = decoded.userId;
+    // リクエストオブジェクトにuserIdを設定（既存のコードとの互換性のため）
+    req.userId = req.session.userId;
     next();
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+    return res.status(401).json({ error: 'Invalid session' });
   }
-};
-
-export const generateToken = (userId: string): string => {
-  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '30d' });
 };
