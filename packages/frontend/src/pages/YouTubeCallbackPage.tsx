@@ -1,85 +1,54 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { youtubeOAuthApi } from '../api/client'
+import { useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { youtubeDataApi } from '../api/client';
 
 function YouTubeCallbackPage() {
-  const navigate = useNavigate()
-  const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
-  const [error, setError] = useState<string>('')
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleCallback = async () => {
-      try {
-        // Get authorization code from URL
-        const params = new URLSearchParams(window.location.search)
-        const code = params.get('code')
-        const error = params.get('error')
+      const code = searchParams.get('code');
+      const error = searchParams.get('error');
 
-        if (error) {
-          setStatus('error')
-          setError(`認証がキャンセルされました: ${error}`)
-          setTimeout(() => navigate('/playlists'), 3000)
-          return
-        }
-
-        if (!code) {
-          setStatus('error')
-          setError('認証コードが見つかりません')
-          setTimeout(() => navigate('/playlists'), 3000)
-          return
-        }
-
-        // Send code to backend
-        await youtubeOAuthApi.handleCallback(code)
-
-        setStatus('success')
-        setTimeout(() => navigate('/playlists'), 2000)
-      } catch (err: any) {
-        console.error('YouTube callback error:', err)
-        setStatus('error')
-        setError(err.response?.data?.error || 'YouTube連携に失敗しました')
-        setTimeout(() => navigate('/playlists'), 3000)
+      if (error) {
+        console.error('YouTube OAuth error:', error);
+        alert('YouTube連携に失敗しました');
+        navigate('/playlists');
+        return;
       }
-    }
 
-    handleCallback()
-  }, [navigate])
+      if (!code) {
+        console.error('No authorization code received');
+        navigate('/playlists');
+        return;
+      }
+
+      try {
+        await youtubeDataApi.authCallback(code);
+        alert('YouTube連携に成功しました！');
+        navigate('/playlists');
+      } catch (error) {
+        console.error('Failed to complete YouTube OAuth:', error);
+        alert('YouTube連携の完了に失敗しました');
+        navigate('/playlists');
+      }
+    };
+
+    handleCallback();
+  }, [searchParams, navigate]);
 
   return (
     <div style={{
       display: 'flex',
-      flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       minHeight: '100vh',
-      padding: '20px'
+      color: '#ffffff'
     }}>
-      {status === 'processing' && (
-        <>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>⏳</div>
-          <h2>YouTube連携中...</h2>
-          <p>しばらくお待ちください</p>
-        </>
-      )}
-
-      {status === 'success' && (
-        <>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>✅</div>
-          <h2>YouTube連携が完了しました！</h2>
-          <p>プレイリストページにリダイレクトします...</p>
-        </>
-      )}
-
-      {status === 'error' && (
-        <>
-          <div style={{ fontSize: '48px', marginBottom: '20px' }}>❌</div>
-          <h2>エラーが発生しました</h2>
-          <p>{error}</p>
-          <p>プレイリストページにリダイレクトします...</p>
-        </>
-      )}
+      YouTube連携を処理中...
     </div>
-  )
+  );
 }
 
-export default YouTubeCallbackPage
+export default YouTubeCallbackPage;

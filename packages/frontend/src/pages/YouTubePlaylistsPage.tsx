@@ -77,6 +77,19 @@ function YouTubePlaylistsPage() {
     }
   }
 
+  // Helper function to get playlist thumbnail from first video
+  const getPlaylistThumbnail = (playlist: any) => {
+    if (playlist.thumbnail) {
+      return playlist.thumbnail
+    }
+    // Get thumbnail from first video that has one
+    if (playlist.videos && playlist.videos.length > 0) {
+      const videoWithThumbnail = playlist.videos.find((v: any) => v.thumbnail)
+      return videoWithThumbnail?.thumbnail
+    }
+    return null
+  }
+
   if (isCheckingConnection) {
     return <div>接続状態を確認中...</div>
   }
@@ -166,35 +179,40 @@ function YouTubePlaylistsPage() {
       )}
 
       <div className="playlists-grid">
-        {playlists?.map((playlist: any) => (
-          <div key={playlist._id} className="playlist-card video-theme">
-            <Link to={`/youtube/playlists/${playlist._id}`} className="playlist-link">
-              <div className="playlist-thumbnail video-theme">
-                {playlist.thumbnail ? (
-                  <img src={playlist.thumbnail} alt={playlist.name} />
+        {playlists?.map((playlist: any) => {
+          const thumbnail = getPlaylistThumbnail(playlist)
+          return (
+            <div key={playlist._id} className="playlist-card video-theme">
+              <Link to={`/youtube/playlists/${playlist._id}`} className="playlist-link">
+                {thumbnail ? (
+                  <div className="playlist-thumbnail video-theme">
+                    <img src={thumbnail} alt={playlist.name} />
+                    <div className="video-overlay">▶️</div>
+                  </div>
                 ) : (
-                  <div className="placeholder-thumbnail video-theme">▶️</div>
+                  <div className="playlist-thumbnail video-theme">
+                    <div className="placeholder-thumbnail video-theme">▶️</div>
+                  </div>
                 )}
-                <div className="video-overlay">▶️</div>
-              </div>
-              <h3>{playlist.name}</h3>
-              {playlist.description && <p>{playlist.description}</p>}
-              <div className="playlist-info">
-                <span>📹 {playlist.itemCount || 0} 動画</span>
-              </div>
-            </Link>
-            <button
-              className="delete-button video-theme"
-              onClick={() => {
-                if (confirm('この再生リストを削除しますか?')) {
-                  deleteMutation.mutate(playlist._id)
-                }
-              }}
-            >
-              削除
-            </button>
-          </div>
-        ))}
+                <h3>{playlist.name}</h3>
+                {playlist.description && <p>{playlist.description}</p>}
+                <div className="playlist-info">
+                  <span>📹 {playlist.videos?.length || playlist.itemCount || 0} 動画</span>
+                </div>
+              </Link>
+              <button
+                className="delete-button video-theme"
+                onClick={() => {
+                  if (confirm('この再生リストを削除しますか?')) {
+                    deleteMutation.mutate(playlist._id)
+                  }
+                }}
+              >
+                削除
+              </button>
+            </div>
+          )
+        })}
       </div>
 
       {playlists?.length === 0 && !isCreating && (

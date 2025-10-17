@@ -1,0 +1,144 @@
+.ytmusic-setup-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.setup-container {
+  background-color: #1a1a1a;
+  border-radius: 12px;
+  padding: 40px;
+}
+
+.setup-container h1 {
+  font-size: 32px;
+  margin-bottom: 16px;
+  color: #ffffff;
+}
+
+.description {
+  color: #aaa;
+  margin-bottom: 32px;
+  font-size: 16px;
+}
+
+.instructions {
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 32px;
+}
+
+.instructions h2 {
+  font-size: 20px;
+  margin-bottom: 16px;
+  color: #ffffff;
+}
+
+.instructions ol {
+  margin-left: 20px;
+  color: #ccc;
+}
+
+.instructions li {
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.instructions ul {
+  margin-left: 20px;
+  margin-top: 8px;
+}
+
+.instructions code {
+  background-color: #1a1a1a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: monospace;
+  color: #ff6b6b;
+}
+
+.instructions a {
+  color: #ff0000;
+  text-decoration: none;
+}
+
+.instructions a:hover {
+  text-decoration: underline;
+}
+
+.cookie-form {
+  margin-bottom: 24px;
+}
+
+.cookie-input {
+  width: 100%;
+  padding: 16px;
+  background-color: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: monospace;
+  font-size: 14px;
+  resize: vertical;
+  margin-bottom: 16px;
+}
+
+.cookie-input:focus {
+  outline: none;
+  border-color: #ff0000;
+}
+
+.cookie-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-group {
+  display: flex;
+  gap: 16px;
+}
+
+.submit-button,
+.cancel-button {
+  padding: 14px 28px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.submit-button {
+  background-color: #ff0000;
+  color: #ffffff;
+  flex: 1;
+}
+
+.submit-button:hover:not(:disabled) {
+  background-color: #cc0000;
+}
+
+.submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cancel-button {
+  background-color: #2a2a2a;
+  color: #ffffff;
+  border: 1px solid #3a3a3a;
+}
+
+.cancel-button:hover:not(:disabled) {
+  background-color: #3a3a3a;
+}
+
+.warning {
+  background-color: #3a2a1a;
+  border-left: 4px solid #ff9800;
+  padding: 16px;
+  border-radius: 4px;
+  color: #ffb74d;
+  font-size: 14px;
+}

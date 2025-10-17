@@ -110,12 +110,10 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
   }
 });
 
-// Google OAuth Login
 router.post('/google', async (req: Request, res: Response) => {
   try {
-    const { credential } = req.body;
+    const { credential, youtubeAccessToken, youtubeRefreshToken } = req.body;
 
-    // Verify Google token
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID
@@ -127,31 +125,32 @@ router.post('/google', async (req: Request, res: Response) => {
     }
 
     const { email, name, picture } = payload;
-
-    // Find or create user
     let user = await User.findOne({ email });
 
     if (!user) {
-      // Create new user with a random password (won't be used for Google login)
       const randomPassword = Math.random().toString(36).slice(-8);
       user = new User({
         email,
         name: name || email.split('@')[0],
         password: randomPassword,
         googleId: payload.sub,
-        picture
+        picture,
+        youtubeAccessToken,
+        youtubeRefreshToken
       });
-      await user.save();
+    } else {
+      user.youtubeAccessToken = youtubeAccessToken;
+      user.youtubeRefreshToken = youtubeRefreshToken;
     }
+    
+    await user.save();
 
-    // Generate token
     const token = generateToken(user._id.toString());
 
-    // Set cookie
     res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      maxAge: 30 * 24 * 60 * 60 * 1000
     });
 
     res.json({

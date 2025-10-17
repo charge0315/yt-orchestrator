@@ -11,7 +11,20 @@
       "Bash(taskkill:*)",
       "Bash(rm:*)",
       "Bash(npm cache clean:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd thumbnail display to playlist cards\n\nプレイリストカードにサムネイル表示機能を追加しました。\n- 最初の曲/動画のサムネイルを表示\n- サムネイルがない場合はプレースホルダーアイコンを表示\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(curl:*)",
+      "Bash(mongosh:*)",
+      "Bash(mongo:*)",
+      "Bash(npm run seed:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd YouTube API data seeding script\n\nYouTube APIからプレイリストデータを取得してMongoDBに保存するスクリプトを追加しました。\n- YouTube Music プレイリストを検索して保存\n- YouTube 再生リストを検索して保存\n- サムネイル画像も含めて保存\n- npm run seed コマンドで実行可能\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit -m \"$(cat <<''EOF''\nAdd user-based playlist management\n\nプレイリストをユーザーごとに管理できるように変更しました。\n- PlaylistモデルにuserId フィールドを追加\n- プレイリストルートに認証を追加\n- ユーザーごとにプレイリストをフィルタリング\n- seedスクリプトでuserIdを付与\n\nNote: 次のステップでYouTube Data API直接連携に移行予定\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit -m \"$(cat <<''EOF''\nImplement YouTube Data API integration\n\nYouTube Data APIと直接連携する機能を実装しました。\n- UserモデルにYouTubeトークンフィールドを追加\n- YouTube OAuth認証フローを実装\n- YouTube APIでプレイリスト取得・作成・編集・削除\n- トークンの自動リフレッシュ機能\n- googleapis パッケージを追加\n\n次のステップ：\n- フロントエンドにYouTube連携UIを実装\n- OAuth callbackページを作成\n- MongoDBプレイリストからYouTube APIに完全移行\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit -m \"$(cat <<''EOF''\nConnect frontend to YouTube Data API\n\nフロントエンドをYouTube Data APIに接続しました。\n- YouTube OAuth連携ボタンを追加\n- OAuth callbackページを実装\n- PlaylistsPageをYouTube API直接連携に変更\n- MongoDBへの参照を削除し、YouTube APIから直接データを取得\n\n動作確認：\n- YouTube連携ボタンをクリックしてOAuth認証\n- 認証後、実際のYouTubeプレイリストが表示される\n- プレイリストの作成・削除がYouTube APIで直接行われる\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

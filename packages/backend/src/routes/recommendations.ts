@@ -1,60 +1,77 @@
-import express, { Request, Response } from 'express';
-import Playlist from '../models/Playlist.js';
+import express, { Response } from 'express';
+import { authenticate, AuthRequest } from '../middleware/auth.js';
+import { YouTubeApiService } from '../services/youtubeApi.js';
+import OpenAI from 'openai';
 
 const router = express.Router();
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
-// Get AI-powered recommendations based on user's playlists
-router.get('/', async (req: Request, res: Response) => {
+router.use(authenticate);
+
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const playlists = await Playlist.find();
+    const ytService = await YouTubeApiService.createFromUserId(req.userId!);
+    const subscriptions = await ytService.getSubscriptions();
+    
+    if (subscriptions.length === 0) {
+      return res.json([]);
+    }
 
-    // Analyze user's music taste from playlists
-    const allSongs = playlists.flatMap(p => p.songs);
-    const artists = [...new Set(allSongs.map(s => s.artist))];
-
-    // TODO: Integrate with OpenAI API for better recommendations
-    // For now, return mock recommendations
-    const mockRecommendations = [
-      {
-        videoId: 'rec1',
-        title: 'Recommended Song 1',
-        artist: artists[0] || 'Similar Artist',
-        reason: 'Based on your love for ' + (artists[0] || 'various artists'),
-        thumbnail: 'https://via.placeholder.com/120',
-        duration: '3:30'
-      },
-      {
-        videoId: 'rec2',
-        title: 'Recommended Song 2',
-        artist: 'New Discovery',
-        reason: 'Fans of your playlists also like this',
-        thumbnail: 'https://via.placeholder.com/120',
-        duration: '4:15'
+    const channelNames = subscriptions.slice(0, 10).map((sub: any) => sub.snippet?.title).filter(Boolean);
+    
+    if (!openai) {
+      const recommendations = [];
+      for (let i = 0; i < Math.min(3, subscriptions.length); i++) {
+        const sub = subscriptions[i];
+        const channelId = sub.snippet?.resourceId?.channelId;
+        if (channelId) {
+          const videos = await ytService.getChannelVideos(channelId, 1);
+          if (videos.length > 0) {
+            recommendations.push({
+              videoId: videos[0].id?.videoId,
+              title: videos[0].snippet?.title,
+              channelTitle: videos[0].snippet?.channelTitle,
+              thumbnail: videos[0].snippet?.thumbnails?.default?.url,
+              reason: `${sub.snippet?.title}の最新動画`
+            });
+          }
+        }
       }
-    ];
+      return res.json(recommendations);
+    }
 
-    res.json(mockRecommendations);
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [{
+        role: 'user',
+        content: `ユーザーは以下のYouTubeチャンネルを登録しています: ${channelNames.join(', ')}。このユーザーにおすすめの音楽アーティストやYouTubeチャンネルを3つ提案してください。各提案には理由も含めてください。JSON形式で返してください: [{"name": "チャンネル名", "reason": "理由"}]`
+      }],
+      temperature: 0.7
+    });
+
+    const aiResponse = completion.choices[0]?.message?.content;
+    let suggestions = [];
+    try {
+      suggestions = JSON.parse(aiResponse || '[]');
+    } catch {
+      suggestions = [{ name: 'おすすめを生成できませんでした', reason: 'もう一度お試しください' }];
+    }
+
+    const recommendations = suggestions.map((sug: any, idx: number) => ({
+      videoId: `ai-rec-${idx}`,
+      title: sug.name,
+      channelTitle: sug.name,
+      thumbnail: '',
+      reason: sug.reason
+    }));
+
+    res.json(recommendations);
   } catch (error) {
+    console.error('Failed to get recommendations:', error);
     res.status(500).json({ error: 'Failed to get recommendations' });
   }
 });
 
-// Get personalized recommendations using OpenAI
-router.post('/ai', async (req: Request, res: Response) => {
-  try {
-    const { preferences, mood } = req.body;
 
-    // TODO: Implement OpenAI integration
-    // This would analyze user preferences and mood to generate recommendations
-
-    res.json({
-      message: 'AI recommendations coming soon',
-      preferences,
-      mood
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to generate AI recommendations' });
-  }
-});
 
 export default router;

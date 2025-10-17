@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
-import { youtubeApi, youtubeOAuthApi } from '../api/client'
+import { Link, useNavigate } from 'react-router-dom'
+import { youtubeDataApi, ytmusicApi } from '../api/client'
 import './PlaylistsPage.css'
 
 function PlaylistsPage() {
   const queryClient = useQueryClient()
+  const navigate = useNavigate()
   const [isCreating, setIsCreating] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [newPlaylistDesc, setNewPlaylistDesc] = useState('')
@@ -16,7 +17,7 @@ function PlaylistsPage() {
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        const response = await youtubeOAuthApi.getStatus()
+        const response = await youtubeDataApi.getAuthStatus()
         setIsYouTubeConnected(response.data.connected)
       } catch (error) {
         console.error('Failed to check YouTube connection:', error)
@@ -29,19 +30,30 @@ function PlaylistsPage() {
   }, [])
 
   // Get YouTube playlists (only if connected)
-  const { data: playlists, isLoading, error } = useQuery({
+  const { data: youtubePlaylists, isLoading: isYouTubeLoading, error: youtubeError } = useQuery({
     queryKey: ['youtube-playlists'],
     queryFn: async () => {
-      const response = await youtubeApi.getPlaylists()
+      const response = await youtubeDataApi.getPlaylists()
       return response.data
     },
     enabled: isYouTubeConnected
   })
 
+  // Get YouTube Music playlists (same as YouTube playlists)
+  const { data: musicPlaylists, isLoading: isMusicLoading, error: musicError } = useQuery({
+    queryKey: ['ytmusic-playlists'],
+    queryFn: async () => {
+      const response = await youtubeDataApi.getPlaylists()
+      return response.data
+    },
+    enabled: isYouTubeConnected,
+    retry: false
+  })
+
   // Create playlist mutation
   const createMutation = useMutation({
     mutationFn: (data: { name: string; description?: string }) =>
-      youtubeApi.createPlaylist(data),
+      youtubeDataApi.createPlaylist(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['youtube-playlists'] })
       setIsCreating(false)
@@ -52,7 +64,7 @@ function PlaylistsPage() {
 
   // Delete playlist mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => youtubeApi.deletePlaylist(id),
+    mutationFn: (id: string) => youtubeDataApi.deletePlaylist(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['youtube-playlists'] })
     }
@@ -69,7 +81,7 @@ function PlaylistsPage() {
 
   const handleConnectYouTube = async () => {
     try {
-      const response = await youtubeOAuthApi.getAuthUrl()
+      const response = await youtubeDataApi.getAuthUrl()
       window.location.href = response.data.url
     } catch (error) {
       console.error('Failed to get YouTube auth URL:', error)
@@ -113,9 +125,9 @@ function PlaylistsPage() {
     )
   }
 
-  if (isLoading) return <div>読み込み中...</div>
+  if (isYouTubeLoading || isMusicLoading) return <div>読み込み中...</div>
 
-  if (error) {
+  if (youtubeError || musicError) {
     return (
       <div className="playlists-page">
         <div className="page-header">
@@ -133,15 +145,53 @@ function PlaylistsPage() {
 
   return (
     <div className="playlists-page">
-      <div className="page-header">
-        <h1>🎵 YouTube Music プレイリスト</h1>
-        <button
-          className="create-button music-theme"
-          onClick={() => setIsCreating(!isCreating)}
-        >
-          {isCreating ? 'キャンセル' : '+ 新規作成'}
-        </button>
-      </div>
+      {/* YouTube Music プレイリスト */}
+      <section className="playlist-section">
+        <div className="section-header">
+          <h2>🎵 YouTube Music プレイリスト</h2>
+        </div>
+
+        <>
+            <div className="playlists-grid">
+              {musicPlaylists?.map((playlist: any) => (
+                <div key={playlist._id} className="playlist-card">
+                  <Link to={`/playlists/${playlist._id}`} className="playlist-link">
+                    <div className="playlist-thumbnail">
+                      {playlist.thumbnail ? (
+                        <img src={playlist.thumbnail} alt={playlist.name} />
+                      ) : (
+                        <div className="placeholder-thumbnail">🎵</div>
+                      )}
+                    </div>
+                    <h3>{playlist.name}</h3>
+                    {playlist.description && <p>{playlist.description}</p>}
+                    <div className="playlist-info">
+                      <span>{playlist.itemCount || 0} 曲</span>
+                    </div>
+                  </Link>
+                </div>
+              ))}
+            </div>
+
+          {musicPlaylists?.length === 0 && (
+            <div className="empty-state">
+              <p>YouTube Musicプレイリストがありません</p>
+            </div>
+          )}
+        </>
+      </section>
+
+      {/* YouTube 再生リスト */}
+      <section className="playlist-section">
+        <div className="section-header">
+          <h2>▶️ YouTube 再生リスト</h2>
+          <button
+            className="create-button"
+            onClick={() => setIsCreating(!isCreating)}
+          >
+            {isCreating ? 'キャンセル' : '+ 新規作成'}
+          </button>
+        </div>
 
       {isCreating && (
         <form className="create-form music-theme" onSubmit={handleCreate}>
@@ -165,45 +215,43 @@ function PlaylistsPage() {
         </form>
       )}
 
-      <div className="playlists-grid">
-        {playlists?.map((playlist: any) => (
-          <div key={playlist._id} className="playlist-card music-theme">
-            <Link to={`/playlists/${playlist._id}`} className="playlist-link">
-              <div className="playlist-thumbnail music-theme">
-                {playlist.thumbnail ? (
-                  <img src={playlist.thumbnail} alt={playlist.name} />
-                ) : (
-                  <div className="placeholder-thumbnail music-theme">🎵</div>
-                )}
-                <div className="music-overlay">🎵</div>
-              </div>
-              <h3>{playlist.name}</h3>
-              {playlist.description && <p>{playlist.description}</p>}
-              <div className="playlist-info">
-                <span>🎧 {playlist.itemCount || 0} 曲</span>
-              </div>
-            </Link>
-            <button
-              className="delete-button music-theme"
-              onClick={() => {
-                if (confirm('このプレイリストを削除しますか?')) {
-                  deleteMutation.mutate(playlist._id)
-                }
-              }}
-            >
-              削除
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {playlists?.length === 0 && !isCreating && (
-        <div className="empty-state">
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}>🎵</div>
-          <p>プレイリストがありません</p>
-          <p>「+ 新規作成」をクリックして最初のプレイリストを作成しましょう</p>
+        <div className="playlists-grid">
+          {youtubePlaylists?.map((playlist: any) => (
+            <div key={playlist._id} className="playlist-card">
+              <Link to={`/youtube/playlists/${playlist._id}`} className="playlist-link">
+                <div className="playlist-thumbnail">
+                  {playlist.thumbnail ? (
+                    <img src={playlist.thumbnail} alt={playlist.name} />
+                  ) : (
+                    <div className="placeholder-thumbnail">▶️</div>
+                  )}
+                </div>
+                <h3>{playlist.name}</h3>
+                {playlist.description && <p>{playlist.description}</p>}
+                <div className="playlist-info">
+                  <span>{playlist.itemCount || 0} 動画</span>
+                </div>
+              </Link>
+              <button
+                className="delete-button"
+                onClick={() => {
+                  if (confirm('この再生リストを削除しますか?')) {
+                    deleteMutation.mutate(playlist._id)
+                  }
+                }}
+              >
+                削除
+              </button>
+            </div>
+          ))}
         </div>
-      )}
+
+        {youtubePlaylists?.length === 0 && !isCreating && (
+          <div className="empty-state">
+            <p>YouTube再生リストがありません</p>
+          </div>
+        )}
+      </section>
     </div>
   )
 }

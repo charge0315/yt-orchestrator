@@ -80,18 +80,18 @@ export const playlistsApi = {
 
 // Artists API
 export const artistsApi = {
-  getAll: () => apiClient.get<Artist[]>('/artists'),
-  subscribe: (data: { name: string; artistId: string; thumbnail?: string }) =>
-    apiClient.post<Artist>('/artists', data),
+  getAll: () => apiClient.get<any[]>('/artists'),
+  subscribe: (data: { channelId: string }) =>
+    apiClient.post<any>('/artists', data),
   unsubscribe: (id: string) => apiClient.delete(`/artists/${id}`),
-  getNewReleases: () => apiClient.get<NewRelease[]>('/artists/new-releases')
+  getNewReleases: () => apiClient.get<any[]>('/artists/new-releases')
 }
 
 // Channels API
 export const channelsApi = {
-  getAll: () => apiClient.get<Channel[]>('/channels'),
-  subscribe: (data: { name: string; channelId: string; thumbnail?: string; description?: string }) =>
-    apiClient.post<Channel>('/channels', data),
+  getAll: () => apiClient.get<any[]>('/channels'),
+  subscribe: (data: { channelId: string }) =>
+    apiClient.post<any>('/channels', data),
   unsubscribe: (id: string) => apiClient.delete(`/channels/${id}`)
 }
 
@@ -213,6 +213,41 @@ export const youtubeChannelsApi = {
 export const youtubeRecommendationsApi = {
   getChannels: () => apiClient.get<ChannelRecommendation[]>('/youtube/recommendations/channels'),
   getVideos: () => apiClient.get<LatestVideo[]>('/youtube/recommendations/videos')
+}
+
+// YouTube Data API (Real YouTube API)
+export interface YouTubeAuthStatus {
+  connected: boolean
+  expiresAt?: Date
+}
+
+export const youtubeDataApi = {
+  getAuthUrl: () => apiClient.get<{ url: string }>('/youtube/auth/url'),
+  authCallback: (code: string) => apiClient.post('/youtube/auth/callback', { code }),
+  getAuthStatus: () => apiClient.get<YouTubeAuthStatus>('/youtube/auth/status'),
+  getPlaylists: () => apiClient.get<YouTubePlaylist[]>('/youtube/playlists'),
+  getPlaylistItems: (id: string) => apiClient.get<Video[]>(`/youtube/playlists/${id}/items`),
+  createPlaylist: (data: { name: string; description?: string; privacy?: string }) =>
+    apiClient.post<YouTubePlaylist>('/youtube/playlists', data),
+  updatePlaylist: (id: string, data: { name: string; description?: string }) =>
+    apiClient.put<YouTubePlaylist>(`/youtube/playlists/${id}`, data),
+  deletePlaylist: (id: string) => apiClient.delete(`/youtube/playlists/${id}`),
+  addVideoToPlaylist: (id: string, videoId: string) =>
+    apiClient.post(`/youtube/playlists/${id}/videos`, { videoId }),
+  removeVideoFromPlaylist: (playlistId: string, videoId: string) =>
+    apiClient.delete(`/youtube/playlists/${playlistId}/videos/${videoId}`),
+  searchVideos: (query: string, maxResults?: number) =>
+    apiClient.get('/youtube/search', { params: { query, maxResults } })
+}
+
+// YouTube Music API (ytmusicapi)
+export const ytmusicApi = {
+  saveCookie: (cookie: string) => apiClient.post('/ytmusic/auth/cookie', { cookie }),
+  getAuthStatus: () => apiClient.get<{ connected: boolean }>('/ytmusic/auth/status'),
+  disconnect: () => apiClient.post('/ytmusic/auth/disconnect'),
+  getPlaylists: () => apiClient.get<Playlist[]>('/ytmusic/playlists'),
+  getPlaylist: (id: string) => apiClient.get<Playlist>(`/ytmusic/playlists/${id}`),
+  searchSongs: (query: string) => apiClient.get<Song[]>('/ytmusic/search', { params: { query } })
 }
 
 // YouTube OAuth API

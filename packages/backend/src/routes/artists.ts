@@ -1,72 +1,56 @@
-import express, { Request, Response } from 'express';
-import Artist from '../models/Artist.js';
+import express, { Response } from 'express';
+import { authenticate, AuthRequest } from '../middleware/auth.js';
+import { YouTubeApiService } from '../services/youtubeApi.js';
 
 const router = express.Router();
 
-// Get all subscribed artists
-router.get('/', async (req: Request, res: Response) => {
+router.use(authenticate);
+
+router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const artists = await Artist.find().sort({ subscribedAt: -1 });
-    res.json(artists);
+    const ytService = await YouTubeApiService.createFromUserId(req.userId!);
+    const subscriptions = await ytService.getSubscriptions();
+    res.json(subscriptions);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch artists' });
   }
 });
 
-// Subscribe to an artist
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { name, artistId, thumbnail } = req.body;
-
-    const existingArtist = await Artist.findOne({ artistId });
-    if (existingArtist) {
-      return res.status(400).json({ error: 'Already subscribed to this artist' });
-    }
-
-    const artist = new Artist({
-      name,
-      artistId,
-      thumbnail,
-      newReleases: []
-    });
-
-    await artist.save();
-    res.status(201).json(artist);
+    const { channelId } = req.body;
+    const ytService = await YouTubeApiService.createFromUserId(req.userId!);
+    const subscription = await ytService.subscribe(channelId);
+    res.status(201).json(subscription);
   } catch (error) {
     res.status(500).json({ error: 'Failed to subscribe to artist' });
   }
 });
 
-// Unsubscribe from an artist
-router.delete('/:id', async (req: Request, res: Response) => {
+router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const artist = await Artist.findByIdAndDelete(req.params.id);
-    if (!artist) {
-      return res.status(404).json({ error: 'Artist not found' });
-    }
+    const ytService = await YouTubeApiService.createFromUserId(req.userId!);
+    await ytService.unsubscribe(req.params.id);
     res.json({ message: 'Unsubscribed from artist successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to unsubscribe from artist' });
   }
 });
 
-// Get new releases from subscribed artists
-router.get('/new-releases', async (req: Request, res: Response) => {
+router.get('/new-releases', async (req: AuthRequest, res: Response) => {
   try {
-    const artists = await Artist.find();
-    const allNewReleases = artists.flatMap(artist =>
-      artist.newReleases.map(release => ({
-        ...release.toObject(),
-        artistName: artist.name,
-        artistId: artist.artistId
-      }))
-    );
-
-    // Sort by release date, newest first
-    allNewReleases.sort((a, b) =>
-      new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
-    );
-
+    const ytService = await YouTubeApiService.createFromUserId(req.userId!);
+    const subscriptions = await ytService.getSubscriptions();
+    const allNewReleases = [];
+    
+    for (const sub of subscriptions) {
+      const channelId = sub.snippet?.resourceId?.channelId;
+      if (channelId) {
+        const videos = await ytService.getChannelVideos(channelId, 5);
+        allNewReleases.push(...videos);
+      }
+    }
+    
     res.json(allNewReleases);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch new releases' });
