@@ -5,13 +5,18 @@ import { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
 
 const router = express.Router();
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const oauth2Client = new google.auth.OAuth2(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`
-);
+function getGoogleClient() {
+  return new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+}
+
+function getOAuth2Client() {
+  return new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    `${process.env.FRONTEND_URL || 'http://localhost:5173'}/auth/callback`
+  );
+}
 
 // Register
 router.post('/register', async (req: Request, res: Response) => {
@@ -119,6 +124,8 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
 
 // Google OAuth - Start authentication
 router.get('/google', (req: Request, res: Response) => {
+  const oauth2Client = getOAuth2Client();
+  
   const scopes = [
     'https://www.googleapis.com/auth/youtube',
     'https://www.googleapis.com/auth/youtube.force-ssl',
@@ -138,6 +145,7 @@ router.get('/google', (req: Request, res: Response) => {
 // Google OAuth - Handle callback
 router.get('/google/callback', async (req: Request, res: Response) => {
   try {
+    const oauth2Client = getOAuth2Client();
     const { code } = req.query;
     
     if (!code || typeof code !== 'string') {
@@ -193,6 +201,7 @@ router.get('/google/callback', async (req: Request, res: Response) => {
 
 router.post('/google', async (req: Request, res: Response) => {
   try {
+    const googleClient = getGoogleClient();
     const { credential, youtubeAccessToken, youtubeRefreshToken } = req.body;
 
     const ticket = await googleClient.verifyIdToken({
