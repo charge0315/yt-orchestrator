@@ -66,18 +66,20 @@ function HomePage() {
         setIsAuthenticated(true)
       }
 
-      setChannels(channelsRes.data || [])
-      setPlaylists(playlistsRes.data || [])
-      setArtists(artistsRes.data || [])
+      setChannels(Array.isArray(channelsRes.data) ? channelsRes.data : [])
+      setPlaylists(Array.isArray(playlistsRes.data) ? playlistsRes.data : [])
+      setArtists(Array.isArray(artistsRes.data) ? artistsRes.data : [])
 
       // YouTube Musicプレイリストを取得（エラーは無視）
       try {
         const ytmRes = await ytmusicApi.getPlaylists()
-        setYtmPlaylists(ytmRes.data || [])
+        setYtmPlaylists(Array.isArray(ytmRes.data) ? ytmRes.data : [])
       } catch {}
 
       // 最新動画とおすすめを読み込み
-      await loadLatestVideos([...channelsRes.data, ...artistsRes.data])
+      const channels = Array.isArray(channelsRes.data) ? channelsRes.data : []
+      const artists = Array.isArray(artistsRes.data) ? artistsRes.data : []
+      await loadLatestVideos([...channels, ...artists])
       await loadRecommendations()
     } catch (error) {
       console.error('Failed to load data:', error)
@@ -155,6 +157,10 @@ function HomePage() {
    * @param sortType ソートタイプ（'recent': 登録順、'name': 名前順）
    */
   const sortItems = (items: any[], sortType: 'recent' | 'name') => {
+    // 配列でない場合は空配列を返す
+    if (!Array.isArray(items)) {
+      return []
+    }
     const sorted = [...items]
     if (sortType === 'name') {
       sorted.sort((a, b) => {

@@ -9,7 +9,9 @@ function PlaylistsPage() {
     queryKey: ['ytmusic-playlists'],
     queryFn: async () => {
       const response = await ytmusicApi.getPlaylists()
-      return response.data
+      // バックエンドは { items: [], nextPageToken } を返す
+      const data = response.data as any
+      return Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : [])
     },
     retry: false
   })
@@ -25,7 +27,7 @@ function PlaylistsPage() {
       </div>
 
       <div className="playlists-grid">
-        {musicPlaylists?.map((playlist: any) => {
+        {Array.isArray(musicPlaylists) && musicPlaylists.map((playlist: any) => {
           const thumbnail = playlist.snippet?.thumbnails?.medium?.url || 
                            playlist.snippet?.thumbnails?.default?.url
           return (

@@ -19,16 +19,17 @@ function ChannelsPage() {
   const loadChannels = async () => {
     try {
       const response = await channelsApi.getAll()
-      setChannels(response.data)
-      
+      const channelsData = Array.isArray(response.data) ? response.data : []
+      setChannels(channelsData)
+
       // 各チャンネルの最新動画を取得
       const videosMap: {[key: string]: any[]} = {}
-      for (const channel of response.data) {
+      for (const channel of channelsData) {
         const channelId = channel.snippet?.resourceId?.channelId
         if (channelId) {
           try {
             const videos = await youtubeDataApi.searchVideos(`channel:${channelId}`, 1)
-            videosMap[channel.id] = videos.data
+            videosMap[channel.id] = Array.isArray(videos.data) ? videos.data : []
           } catch (error) {
             console.error(`Failed to load videos for channel ${channelId}:`, error)
           }
@@ -49,7 +50,8 @@ function ChannelsPage() {
     setIsSearching(true)
     try {
       const response = await youtubeDataApi.searchVideos(searchQuery, 10)
-      const channels = response.data.reduce((acc: any[], video: any) => {
+      const searchData = Array.isArray(response.data) ? response.data : []
+      const channels = searchData.reduce((acc: any[], video: any) => {
         if (!acc.find(ch => ch.channelTitle === video.channelTitle)) {
           acc.push({
             channelTitle: video.channelTitle,
@@ -87,6 +89,13 @@ function ChannelsPage() {
   }
 
   const handleChannelClick = (channel: any) => {
+    // バックエンドから提供される最新動画IDを優先的に使用
+    if (channel.latestVideoId) {
+      setPlayingVideoId(channel.latestVideoId)
+      return
+    }
+
+    // フォールバック: フロントエンドで取得した動画情報を使用
     const latestVideo = channelVideos[channel.id]?.[0]
     if (latestVideo) {
       const videoId = latestVideo.id?.videoId || latestVideo.videoId
@@ -180,47 +189,43 @@ function ChannelsPage() {
           <div className="channels-grid">
             {channels.map((channel: any) => {
               const latestVideo = channelVideos[channel.id]?.[0]
-              const thumbnail = latestVideo?.snippet?.thumbnails?.medium?.url || 
+              // バックエンドから提供される最新動画のサムネイルを優先的に使用
+              const thumbnail = channel.latestVideoThumbnail ||
+                               latestVideo?.snippet?.thumbnails?.medium?.url ||
                                latestVideo?.snippet?.thumbnails?.default?.url ||
                                channel.snippet?.thumbnails?.default?.url
               return (
-                <div key={channel.id} className="channel-card" style={{ cursor: 'pointer' }}>
+                <div key={channel.id} className="channel-card">
                   {thumbnail && (
-                    <img
-                      src={thumbnail}
-                      alt={channel.snippet?.title}
+                    <div
+                      className="channel-thumbnail"
                       onClick={() => handleChannelClick(channel)}
-                    />
+                      style={{ cursor: 'pointer', position: 'relative' }}
+                    >
+                      <img
+                        src={thumbnail}
+                        alt={channel.snippet?.title}
+                      />
+                      {/* サムネイルホバー時の再生オーバーレイ */}
+                      <div className="play-overlay">▶</div>
+                    </div>
                   )}
                   <div className="channel-info">
-                    <h3 onClick={() => handleChannelClick(channel)}>{channel.snippet?.title}</h3>
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                      <button
-                        onClick={() => handleChannelClick(channel)}
-                        style={{
-                          flex: 1,
-                          padding: '8px 16px',
-                          backgroundColor: '#ff0000',
-                          color: '#ffffff',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      >
-                        ▶️ 再生
-                      </button>
-                      <button
-                        onClick={() => handleUnsubscribe(channel.id)}
-                        style={{
-                          padding: '8px 16px',
-                          backgroundColor: '#2a2a2a',
-                          color: '#ff4444',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      >
-                        登録解除
-                      </button>
-                    </div>
+                    <h3>{channel.snippet?.title}</h3>
+                    <button
+                      onClick={() => handleUnsubscribe(channel.id)}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#2a2a2a',
+                        color: '#ff4444',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        marginTop: '8px',
+                        width: '100%'
+                      }}
+                    >
+                      登録解除
+                    </button>
                   </div>
                 </div>
               )

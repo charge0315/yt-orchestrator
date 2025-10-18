@@ -8,7 +8,9 @@ function YouTubePlaylistsPage() {
     queryKey: ['youtube-playlists-video'],
     queryFn: async () => {
       const response = await youtubeApi.getPlaylists()
-      return response.data
+      // バックエンドは { items: [], nextPageToken } を返す
+      const data = response.data as any
+      return Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : [])
     }
   })
 

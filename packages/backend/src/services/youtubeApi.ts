@@ -84,13 +84,21 @@ export class YouTubeApiService {
   /**
    * プレイリストが音楽系かどうかを判定
    * タイトルや説明に音楽関連キーワードが含まれるかチェック
+   * 注: この判定は同期的で軽量ですが、完全には正確ではありません
+   * より正確な判定が必要な場合は isMusicPlaylistAsync() を使用してください
    * @param playlist プレイリストオブジェクト
    * @returns 音楽系の場合true
    */
   isMusicPlaylist(playlist: any): boolean {
     const title = (playlist.snippet?.title || '').toLowerCase();
     const description = (playlist.snippet?.description || '').toLowerCase();
-    const combinedText = title + ' ' + description;
+    const channelTitle = (playlist.snippet?.channelTitle || '').toLowerCase();
+    const combinedText = title + ' ' + description + ' ' + channelTitle;
+
+    // チャンネル名に "- topic" が含まれていたら公式アーティストチャンネル
+    if (channelTitle.includes('- topic')) {
+      return true;
+    }
 
     // 音楽関連キーワード
     const musicKeywords = [
@@ -119,6 +127,74 @@ export class YouTubeApiService {
     // 音楽キーワードが含まれていたら音楽系
     const hasMusicKeyword = musicKeywords.some(keyword => combinedText.includes(keyword));
     return hasMusicKeyword;
+  }
+
+  /**
+   * プレイリストが音楽系かどうかを非同期で正確に判定
+   * プレイリスト内の動画のカテゴリIDをチェックして判定
+   * @param playlistId プレイリストID
+   * @returns 音楽系の場合true（動画の50%以上がカテゴリID=10の場合）
+   */
+  async isMusicPlaylistAsync(playlistId: string): Promise<boolean> {
+    const cacheKey = `playlist_music_check:${playlistId}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached !== undefined) return cached;
+
+    try {
+      // プレイリスト内の最初の5個の動画を取得（クォータ節約）
+      const playlistItems = await this.youtube.playlistItems.list({
+        part: ['snippet'],
+        playlistId: playlistId,
+        maxResults: 5,
+        fields: 'items(snippet(resourceId/videoId,channelTitle))'
+      });
+
+      const items = playlistItems.data.items || [];
+      if (items.length === 0) {
+        return false;
+      }
+
+      // チャンネル名に "- Topic" が含まれているかチェック（公式アーティストチャンネル）
+      const hasTopicChannel = items.some(item =>
+        (item.snippet?.channelTitle || '').includes('- Topic')
+      );
+      if (hasTopicChannel) {
+        this.setCache(cacheKey, true);
+        return true;
+      }
+
+      // 動画IDを取得
+      const videoIds = items
+        .map(item => item.snippet?.resourceId?.videoId)
+        .filter((id): id is string => !!id);
+
+      if (videoIds.length === 0) {
+        return false;
+      }
+
+      // 動画の詳細情報を取得してカテゴリIDをチェック
+      const videosResponse = await this.youtube.videos.list({
+        part: ['snippet'],
+        id: videoIds,
+        fields: 'items(snippet/categoryId)'
+      });
+
+      const videos = videosResponse.data.items || [];
+
+      // カテゴリID=10（Music）の動画の割合を計算
+      const musicVideos = videos.filter(video => video.snippet?.categoryId === '10');
+      const musicRatio = musicVideos.length / videos.length;
+
+      // 50%以上が音楽カテゴリなら音楽プレイリストと判定
+      const isMusic = musicRatio >= 0.5;
+
+      this.setCache(cacheKey, isMusic);
+      return isMusic;
+    } catch (error) {
+      console.error('Error checking if playlist is music:', error);
+      // エラーの場合は従来のキーワードベース判定にフォールバック
+      return false;
+    }
   }
 
   /**

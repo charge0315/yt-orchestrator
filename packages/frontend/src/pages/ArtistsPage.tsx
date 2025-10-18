@@ -18,7 +18,7 @@ function ArtistsPage() {
   const loadArtists = async () => {
     try {
       const response = await artistsApi.getAll()
-      setArtists(response.data)
+      setArtists(Array.isArray(response.data) ? response.data : [])
     } catch (error) {
       console.error('Failed to load artists:', error)
     } finally {
@@ -34,7 +34,8 @@ function ArtistsPage() {
     try {
       const response = await youtubeDataApi.searchVideos(searchQuery, 10)
       // Extract unique channels from search results
-      const channels = response.data.reduce((acc: any[], video: any) => {
+      const searchData = Array.isArray(response.data) ? response.data : []
+      const channels = searchData.reduce((acc: any[], video: any) => {
         if (!acc.find(ch => ch.channelTitle === video.channelTitle)) {
           acc.push({
             channelTitle: video.channelTitle,
@@ -165,29 +166,23 @@ function ArtistsPage() {
         ) : artists.length > 0 ? (
           <div className="artists-grid">
             {artists.map((artist: any) => (
-              <div key={artist.id} className="artist-card" style={{ cursor: 'pointer' }}>
+              <div key={artist.id} className="artist-card">
                 {artist.snippet?.thumbnails?.default?.url && (
-                  <img
-                    src={artist.snippet.thumbnails.default.url}
-                    alt={artist.snippet.title}
+                  <div
+                    className="artist-thumbnail"
                     onClick={() => handleArtistClick(artist)}
-                  />
-                )}
-                <h3 onClick={() => handleArtistClick(artist)}>{artist.snippet?.title}</h3>
-                <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                  <button
-                    onClick={() => handleArtistClick(artist)}
-                    style={{
-                      flex: 1,
-                      padding: '8px 16px',
-                      backgroundColor: '#ff0000',
-                      color: '#ffffff',
-                      borderRadius: '6px',
-                      fontSize: '14px'
-                    }}
+                    style={{ cursor: 'pointer', position: 'relative' }}
                   >
-                    ▶️ 再生
-                  </button>
+                    <img
+                      src={artist.snippet.thumbnails.default.url}
+                      alt={artist.snippet.title}
+                    />
+                    {/* サムネイルホバー時の再生オーバーレイ */}
+                    <div className="play-overlay">▶</div>
+                  </div>
+                )}
+                <div className="artist-info">
+                  <h3>{artist.snippet?.title}</h3>
                   <button
                     onClick={() => handleUnsubscribe(artist.id)}
                     style={{
@@ -195,7 +190,9 @@ function ArtistsPage() {
                       backgroundColor: '#2a2a2a',
                       color: '#ff4444',
                       borderRadius: '6px',
-                      fontSize: '14px'
+                      fontSize: '14px',
+                      marginTop: '8px',
+                      width: '100%'
                     }}
                   >
                     登録解除

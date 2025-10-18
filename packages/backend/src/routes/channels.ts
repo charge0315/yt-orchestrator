@@ -22,6 +22,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const cacheKey = `channels:${req.userId}`;
     const cached = cache.get(cacheKey);
     if (cached) {
+      console.log('Returning cached channels with video info');
       return res.json(cached);
     }
 
@@ -39,6 +40,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
               const latestVideo = videos[0];
               return {
                 ...sub,
+                latestVideoId: latestVideo.id?.videoId || latestVideo.id,
                 latestVideoThumbnail: latestVideo.snippet?.thumbnails?.high?.url ||
                                      latestVideo.snippet?.thumbnails?.medium?.url ||
                                      latestVideo.snippet?.thumbnails?.default?.url

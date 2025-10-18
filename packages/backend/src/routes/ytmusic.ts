@@ -31,7 +31,7 @@ router.get('/auth/status', authenticate, async (req: AuthRequest, res: Response)
 /**
  * GET /api/ytmusic/playlists
  * YouTube Musicプレイリスト一覧を取得
- * プレイリスト名や説明から音楽系のもののみをフィルタリング
+ * プレイリスト内の動画のカテゴリIDをチェックして音楽系のもののみをフィルタリング
  * クエリパラメータ: pageToken (オプション)
  */
 router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) => {
@@ -40,9 +40,18 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
     const result = await ytService.getPlaylists(pageToken as string | undefined);
 
-    const musicPlaylists = result.items.filter((playlist: any) =>
-      ytService.isMusicPlaylist(playlist)
+    // 各プレイリストを非同期で判定（並列処理）
+    const playlistChecks = await Promise.all(
+      result.items.map(async (playlist: any) => ({
+        playlist,
+        isMusic: await ytService.isMusicPlaylistAsync(playlist.id)
+      }))
     );
+
+    // 音楽プレイリストのみをフィルタリング
+    const musicPlaylists = playlistChecks
+      .filter(({ isMusic }) => isMusic)
+      .map(({ playlist }) => playlist);
 
     res.json({
       items: musicPlaylists,

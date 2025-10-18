@@ -39,8 +39,43 @@
   border-color: #ff0000;
 }
 
-.release-card img,
-.artist-card img {
+.artist-thumbnail {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.artist-thumbnail img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+}
+
+.artist-thumbnail:hover img {
+  transform: scale(1.05);
+}
+
+.play-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 48px;
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+}
+
+.artist-thumbnail:hover .play-overlay {
+  opacity: 1;
+}
+
+.release-card img {
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;

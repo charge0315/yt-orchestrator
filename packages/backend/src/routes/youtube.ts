@@ -20,9 +20,18 @@ router.get('/playlists', async (req: AuthRequest, res: Response) => {
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
     const result = await ytService.getPlaylists(pageToken as string | undefined);
 
-    const videoPlaylists = result.items.filter((playlist: any) =>
-      !ytService.isMusicPlaylist(playlist)
+    // 各プレイリストを非同期で判定（並列処理）
+    const playlistChecks = await Promise.all(
+      result.items.map(async (playlist: any) => ({
+        playlist,
+        isMusic: await ytService.isMusicPlaylistAsync(playlist.id)
+      }))
     );
+
+    // 音楽プレイリストを除外（動画プレイリストのみ）
+    const videoPlaylists = playlistChecks
+      .filter(({ isMusic }) => !isMusic)
+      .map(({ playlist }) => playlist);
 
     res.json({
       items: videoPlaylists,
