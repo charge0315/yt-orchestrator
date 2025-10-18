@@ -46,10 +46,12 @@ YouTube Orchestratorは、YouTubeとYouTube Musicの体験を向上させるた�
   - チャンネルの登録・登録解除
   - チャンネル検索機能
 
-- **🔐 認証**
+- **🔐 認証・セキュリティ**
   - Google OAuth 2.0認証
   - YouTubeアクセストークンの自動管理
+  - MongoDBへのユーザー情報・トークン永続化
   - Cookieベースのセッション管理
+  - .envファイルによる機密情報の安全な管理（コミット対象外）
 
 ## 🛠️ 技術スタック
 
@@ -87,8 +89,9 @@ YouTubeとYouTube Musicのプレイリストやアーティストは、以下の
 - **📺 googleapis** - YouTube Data API v3統合
 - **🎵 ytmusic-api** - YouTube Music API統合
 - **🤖 OpenAI API** - AIおすすめ機能（GPT-3.5-turbo）
-- **🍃 MongoDB** - データキャッシュとバックグラウンド更新
+- **🍃 MongoDB + Mongoose** - データ永続化・キャッシュ・ユーザー管理
 - **⏰ node-cron** - バックグラウンドジョブスケジューラー
+- **☁️ MongoDB Atlas** - クラウドデータベース（推奨）
 
 ## プロジェクト構造
 
@@ -105,11 +108,12 @@ yt-orchestrator/
 │   └── backend/           # Express.jsバックエンド
 │       ├── src/
 │       │   ├── routes/      # APIルート
-│       │   ├── services/    # 外部APIサービス（YouTube API）
+│       │   ├── models/      # Mongooseモデル（User, CachedChannel, CachedPlaylist）
 │       │   ├── middleware/  # 認証ミドルウェア
-│       │   ├── types/       # TypeScript型定義
-│       │   ├── utils/       # ユーティリティ（キャッシュなど）
+│       │   ├── utils/       # ユーティリティ（DB接続など）
 │       │   └── index.ts     # エントリーポイント
+│       ├── .env             # 環境変数（コミット対象外）
+│       ├── .env.example     # 環境変数テンプレート
 │       └── package.json
 └── package.json           # ルートパッケージ
 ```
@@ -170,15 +174,36 @@ cp .env.example .env
 ```
 
 `.env`ファイルを編集して、必要な環境変数を設定してください：
-```
+```bash
+# Server Configuration
 PORT=3001
 NODE_ENV=development
+
+# MongoDB (ローカルまたはクラウド)
+# ローカルの場合:
+# MONGODB_URI=mongodb://localhost:27017/yt-orchestrator
+# MongoDB Atlas（クラウド）の場合:
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster-url>/?retryWrites=true&w=majority
+MONGODB_API_KEY=your_mongodb_api_key_here
+MONGODB_PUBLIC_API_KEY=your_mongodb_public_api_key_here
+
+# Google OAuth 2.0
 GOOGLE_CLIENT_ID=your_google_client_id_here
 GOOGLE_CLIENT_SECRET=your_google_client_secret_here
+VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
+
+# JWT & Session
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+SESSION_SECRET=your-random-secret-key-change-this-in-production
+
+# OpenAI API
 OPENAI_API_KEY=your_openai_api_key_here
-SESSION_SECRET=your_random_secret_key_here
+
+# CORS
 FRONTEND_URL=http://localhost:5173
 ```
+
+**重要**: `.env`ファイルは機密情報を含むため、Gitにコミットされません。
 
 5. フロントエンドの環境変数を設定：
 ```bash
@@ -269,13 +294,14 @@ npm test
 ## 🏗️ アーキテクチャの特徴
 
 ### データ管理（新アーキテクチャ）
+- **ユーザー管理**: MongoDBにユーザー情報とYouTubeトークンを永続化
 - **セッション管理**: Express Sessionでメモリ内管理（Google OAuth）
-- **MongoDBキャッシュ**: チャンネル・プレイリストデータをDBに保存
-- **バックグラウンド更新**: 定期ジョブ（30分ごと）でYouTube APIから差分更新
-- **差分チェック**: pageTokenを使った効率的な更新判定
-- **リアルタイム表示**: ユーザーへはDBキャッシュから高速レスポンス
-- **クォータ大幅削減**: リアルタイムAPI呼び出しを排除し、バックグラウンドで一括更新
-- **フォールバック対応**: MongoDB未接続時も動作可能
+- **MongoDBキャッシュ**: チャンネル・プレイリストデータを30分間キャッシュ
+- **DB優先ロジック**: キャッシュがあればDBから取得、なければYouTube APIを呼び出し
+- **自動更新**: データ取得時にキャッシュを自動的にMongoDB保存
+- **クォータ大幅削減**: 30分以内の重複リクエストを排除
+- **フォールバック対応**: MongoDB未接続時もYouTube APIから直接取得可能
+- **クラウド対応**: MongoDB Atlas（クラウド版）をサポート
 
 ### AI機能
 - OpenAI GPT-3.5-turboを使用
@@ -291,14 +317,24 @@ npm test
 
 ## 🔄 最近の更新
 
-### 2025年10月版（進行中）
-- 🚧 **MongoDBキャッシュアーキテクチャの実装**
-  - MongoDBとmongoose、node-cronの依存関係追加
-  - Channel と Playlist のMongooseモデル作成
-  - バックグラウンドジョブスケジューラーの実装（30分ごと）
-  - 差分更新ロジック（pageToken使用）の実装
-  - データベース接続設定とジョブ統合
-  - 次のステップ: APIルートのDB優先化、認証時のトークン登録
+### 2025年10月18日版
+- ✅ **MongoDBキャッシュアーキテクチャの完全実装**
+  - ユーザーモデル（User.ts）の作成とトークン永続化
+  - チャンネルキャッシュモデル（CachedChannel.ts）の実装
+  - プレイリストキャッシュモデル（CachedPlaylist.ts）の実装
+  - 認証時にユーザー情報とYouTubeトークンを自動保存
+  - channels.tsルートをDB優先に変更（30分キャッシュ）
+  - playlists.tsルートをDB優先に変更（30分キャッシュ）
+  - MongoDB未接続時のフォールバック対応
+  
+- ✅ **セキュリティ強化**
+  - .envファイルをコミット対象外に設定
+  - .env.exampleにクラウドMongoDB設定例を追加
+  - 機密情報（APIキー、トークン）の安全な管理
+  
+- ✅ **ドキュメント更新**
+  - YouTubeとYouTube Musicのプレイリスト・アーティスト区別方法をREADMEに追加
+  - MongoDB Atlas（クラウド版）の設定手順を追加
 
 ### 2025年10月版
 - ✅ **プレイリスト判定の大幅改善**
