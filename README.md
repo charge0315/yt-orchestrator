@@ -54,12 +54,31 @@ YouTube Orchestratorは、YouTubeとYouTube Musicの体験を向上させるた�
 ## 🛠️ 技術スタック
 
 ### フロントエンド
-- **⚛️ React** - UIライブラリ
-- **⚡ Vite** - ビルドツール
-- **🗺️ React Router** - ルーティング
-- **🔄 TanStack Query** - データフェッチング・キャッシング
-- **📡 Axios** - HTTPクライアント
-- **📘 TypeScript** - 型安全性
+## 🛠️ 技術スタック
+
+### YouTubeとYouTube Musicのプレイリスト・アーティスト区別方法
+
+YouTubeとYouTube Musicのプレイリストやアーティストは、以下の方法で判別・分類しています。
+
+1. **URLのドメインによる判別（推奨・実装容易）**  
+  - `youtube.com` → 通常の動画・プレイリスト  
+  - `music.youtube.com` → YouTube Musicプレイリスト  
+  ユーザー入力や自動収集時にURLを持っていれば、ドメインで判定可能。API上では同じでも「どこから来たか」で分類。
+
+2. **含まれる動画IDの特徴による判別**  
+  - YouTube Musicのプレイリストは、公式音源（artist channel / topic channel）やmusicVideoタイプが多い。  
+  - APIレスポンスの`contentDetails.videoId`で`videos.list`を呼び出し、`categoryId=10（Music）`なら「Musicプレイリスト」とみなす。  
+  ※この方法はAPIクォータ消費が多いので注意。
+
+3. **channelIdのパターンによる判別**  
+  - Music系プレイリストは、YouTube Music公式（例: `UC-9-kyTW8ZkZNDHQJ6FgpwQ`）や各アーティストの「Topicチャンネル」（`UCxxxx... - Topic`）から生成される。  
+  - これらのchannelIdを判別し、Musicカテゴリとして扱う。
+
+4. **タイトルや説明文の傾向分析（機械学習寄り）**  
+  - title・description・tagsに「🎵」「- Topic」「mix」「artist name」などが頻出する場合、スコアリングして判定。  
+  - API外のロジックで動作するため、クォータ節約になる。
+
+### フロントエンド
 
 ### バックエンド
 - **🚀 Express.js** - Webフレームワーク

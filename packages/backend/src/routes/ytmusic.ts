@@ -91,7 +91,7 @@ router.get('/playlists/:id', authenticate, async (req: AuthRequest, res: Respons
         thumbnail: item.snippet?.thumbnails?.default?.url,
         addedAt: new Date(item.snippet?.publishedAt)
       })),
-      createdAt: new Date(playlist.snippet?.publishedAt),
+      createdAt: playlist.snippet?.publishedAt ? new Date(playlist.snippet.publishedAt) : new Date(),
       updatedAt: new Date()
     };
 

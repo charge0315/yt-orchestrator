@@ -7,6 +7,8 @@ import express, { Request, Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { google } from 'googleapis';
 import '../types/session.js'; // セッション型定義をインポート
+import { User } from '../models/User.js';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
@@ -118,11 +120,33 @@ router.get('/google/callback', async (req: Request, res: Response) => {
     req.session.userId = data.id; // Google IDをuserIdとして使用
     req.session.email = data.email;
     req.session.name = data.name || data.email.split('@')[0];
-    req.session.picture = data.picture;
-    req.session.youtubeAccessToken = tokens.access_token;
-    req.session.youtubeRefreshToken = tokens.refresh_token;
+    req.session.picture = data.picture || undefined;
+    req.session.youtubeAccessToken = tokens.access_token || undefined;
+    req.session.youtubeRefreshToken = tokens.refresh_token || undefined;
     if (tokens.expiry_date) {
       req.session.youtubeTokenExpiry = new Date(tokens.expiry_date);
+    }
+
+    // MongoDBにユーザー情報を保存（利用可能な場合）
+    if (mongoose.connection.readyState === 1) {
+      try {
+        await User.findOneAndUpdate(
+          { googleId: data.id },
+          {
+            email: data.email,
+            name: data.name || data.email.split('@')[0],
+            picture: data.picture || undefined,
+            youtubeAccessToken: tokens.access_token || undefined,
+            youtubeRefreshToken: tokens.refresh_token || undefined,
+            youtubeTokenExpiry: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined
+          },
+          { upsert: true, new: true }
+        );
+        console.log('✅ User tokens saved to MongoDB');
+      } catch (dbError) {
+        console.error('Failed to save user to MongoDB:', dbError);
+        // MongoDBエラーは致命的ではないので続行
+      }
     }
 
     // セッションを保存
