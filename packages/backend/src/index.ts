@@ -8,6 +8,10 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 
+// データベースとジョブのインポート
+import { connectDatabase } from './config/database.js';
+import { startCacheUpdateJob } from './jobs/updateCache.js';
+
 // ルートのインポート
 import playlistRoutes from './routes/playlists.js';
 import songRoutes from './routes/songs.js';
@@ -106,7 +110,13 @@ app.get('/api/health', (req, res) => {
 });
 
 // サーバー起動
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Server is running on http://localhost:${PORT}`);
   console.log(`✅ Session-based authentication enabled`);
+
+  // MongoDB接続
+  await connectDatabase();
+
+  // バックグラウンドジョブ開始
+  startCacheUpdateJob();
 });
