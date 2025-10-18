@@ -14,6 +14,16 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL = 60 * 60 * 1000; // 60分（クォータ節約強化: 30分→60分）
 
+/**
+ * YouTube Music関連の公式チャンネルID
+ * これらのチャンネルから生成されたプレイリストは音楽系と判定
+ */
+const YOUTUBE_MUSIC_CHANNEL_IDS = [
+  'UC-9-kyTW8ZkZNDHQJ6FgpwQ', // YouTube Music公式
+  'UCSJ4gkVC6NrvII8umztf0Ow', // Lofi Girl
+  'UCfM3zsQsOnfWNUppiycmBuw', // Music Lab
+];
+
 export class YouTubeApiService {
   private youtube: youtube_v3.Youtube;
 
@@ -82,7 +92,30 @@ export class YouTubeApiService {
   }
 
   /**
-   * プレイリストが音楽系かどうかを判定
+   * URLドメインからYouTube Musicかどうかを判別
+   * @param url プレイリストまたは動画のURL
+   * @returns YouTube MusicのURLの場合true
+   */
+  static isYouTubeMusicUrl(url: string): boolean {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.hostname === 'music.youtube.com';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * チャンネルIDがYouTube Music公式チャンネルかどうかを判別
+   * @param channelId チャンネルID
+   * @returns YouTube Music公式チャンネルの場合true
+   */
+  static isYouTubeMusicChannel(channelId: string): boolean {
+    return YOUTUBE_MUSIC_CHANNEL_IDS.includes(channelId);
+  }
+
+  /**
+   * プレイリストが音楽系かどうかを判定（スコアリング方式）
    * タイトルや説明に音楽関連キーワードが含まれるかチェック
    * 注: この判定は同期的で軽量ですが、完全には正確ではありません
    * より正確な判定が必要な場合は isMusicPlaylistAsync() を使用してください
@@ -93,40 +126,58 @@ export class YouTubeApiService {
     const title = (playlist.snippet?.title || '').toLowerCase();
     const description = (playlist.snippet?.description || '').toLowerCase();
     const channelTitle = (playlist.snippet?.channelTitle || '').toLowerCase();
+    const channelId = playlist.snippet?.channelId || '';
     const combinedText = title + ' ' + description + ' ' + channelTitle;
 
-    // チャンネル名に "- topic" が含まれていたら公式アーティストチャンネル
+    let score = 0;
+
+    // 1. チャンネルIDがYouTube Music公式チャンネルの場合（確定）
+    if (YouTubeApiService.isYouTubeMusicChannel(channelId)) {
+      return true;
+    }
+
+    // 2. チャンネル名に "- topic" が含まれていたら公式アーティストチャンネル（確定）
     if (channelTitle.includes('- topic')) {
       return true;
     }
 
-    // 音楽関連キーワード
+    // 3. タイトルに音楽関連の絵文字が含まれている場合（スコア+2）
+    if (/[🎵🎶🎸🎹🎤🎧🎼🎺🎻🥁]/u.test(title)) {
+      score += 2;
+    }
+
+    // 4. 音楽関連キーワード（各キーワードでスコア+1）
     const musicKeywords = [
       'music', 'song', 'album', 'artist', 'band', 'playlist',
       '音楽', '曲', 'アルバム', 'アーティスト', 'バンド', 'プレイリスト',
       'ミュージック', 'ソング', 'bgm', 'ost', 'soundtrack',
       'jpop', 'kpop', 'rock', 'jazz', 'classical', 'pop', 'edm',
       'ボカロ', 'vocaloid', 'ボーカロイド', 'カバー', 'cover',
-      'acoustic', 'live', 'concert', 'remix', 'piano', 'guitar'
+      'acoustic', 'live', 'concert', 'remix', 'piano', 'guitar',
+      'mix', 'compilation', 'best of', 'hits'
     ];
 
-    // 動画関連キーワード（これらがあると音楽ではない可能性が高い）
+    const musicKeywordCount = musicKeywords.filter(keyword => 
+      combinedText.includes(keyword)
+    ).length;
+    score += Math.min(musicKeywordCount, 3); // 最大3点
+
+    // 5. 動画関連キーワード（各キーワードでスコア-2）
     const videoKeywords = [
       'vlog', 'tutorial', 'gameplay', 'ゲーム実況', 'ゲーム',
       'game', 'review', 'レビュー', 'how to', '解説',
       'cooking', '料理', 'travel', '旅行', 'news', 'ニュース',
-      'anime', 'アニメ', 'movie', '映画', 'trailer', '予告'
+      'anime', 'アニメ', 'movie', '映画', 'trailer', '予告',
+      'unboxing', '開封', 'haul', 'shorts', 'tiktok'
     ];
 
-    // 動画キーワードが含まれていたら音楽ではない
-    const hasVideoKeyword = videoKeywords.some(keyword => combinedText.includes(keyword));
-    if (hasVideoKeyword) {
-      return false;
-    }
+    const videoKeywordCount = videoKeywords.filter(keyword => 
+      combinedText.includes(keyword)
+    ).length;
+    score -= videoKeywordCount * 2;
 
-    // 音楽キーワードが含まれていたら音楽系
-    const hasMusicKeyword = musicKeywords.some(keyword => combinedText.includes(keyword));
-    return hasMusicKeyword;
+    // スコアが2以上なら音楽プレイリストと判定
+    return score >= 2;
   }
 
   /**
