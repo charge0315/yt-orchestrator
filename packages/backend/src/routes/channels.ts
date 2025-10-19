@@ -16,6 +16,25 @@ const router = express.Router();
 router.use(authenticate);
 
 /**
+ * DELETE /api/channels/cache
+ * MongoDBキャッシュをクリア（開発用）
+ */
+router.delete('/cache', async (req: AuthRequest, res: Response) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const result = await CachedChannel.deleteMany({ userId: req.userId });
+      console.log(`🗑️  Cleared ${result.deletedCount} channels from cache for user ${req.userId}`);
+      res.json({ message: `Cleared ${result.deletedCount} channels from cache` });
+    } else {
+      res.status(503).json({ error: 'MongoDB not connected' });
+    }
+  } catch (error) {
+    console.error('Error clearing channel cache:', error);
+    res.status(500).json({ error: 'Failed to clear cache' });
+  }
+});
+
+/**
  * GET /api/channels
  * 登録中のチャンネル一覧を取得
  * MongoDB優先、APIをフォールバックとして使用

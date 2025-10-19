@@ -67,14 +67,22 @@ function HomePage() {
       }
 
       setChannels(Array.isArray(channelsRes.data) ? channelsRes.data : [])
-      setPlaylists(Array.isArray(playlistsRes.data) ? playlistsRes.data : [])
+      // YouTube APIレスポンスの形式を処理（{ items: [...], nextPageToken } または [...] の両方に対応）
+      const playlistData = playlistsRes.data?.items || playlistsRes.data
+      setPlaylists(Array.isArray(playlistData) ? playlistData : [])
       setArtists(Array.isArray(artistsRes.data) ? artistsRes.data : [])
 
-      // YouTube Musicプレイリストを取得（エラーは無視）
+      // YouTube Musicプレイリストを取得
       try {
         const ytmRes = await ytmusicApi.getPlaylists()
-        setYtmPlaylists(Array.isArray(ytmRes.data) ? ytmRes.data : [])
-      } catch {}
+        // YouTube APIレスポンスの形式を処理（{ items: [...], nextPageToken } または [...] の両方に対応）
+        const ytmData = ytmRes.data?.items || ytmRes.data
+        setYtmPlaylists(Array.isArray(ytmData) ? ytmData : [])
+        console.log('YouTube Music playlists loaded:', ytmData?.length || 0)
+      } catch (error) {
+        console.error('Failed to load YouTube Music playlists:', error)
+        setYtmPlaylists([])
+      }
 
       // 最新動画とおすすめを読み込み
       const channels = Array.isArray(channelsRes.data) ? channelsRes.data : []

@@ -6,6 +6,8 @@
 import express, { Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { YouTubeApiService } from '../services/youtubeApi.js';
+import { CachedPlaylist } from '../models/CachedPlaylist.js';
+import mongoose from 'mongoose';
 
 const router = express.Router();
 
@@ -36,29 +38,66 @@ router.get('/auth/status', authenticate, async (req: AuthRequest, res: Response)
  */
 router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { pageToken } = req.query;
-    const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const result = await ytService.getPlaylists(pageToken as string | undefined);
+    console.log('📀 YouTube Music playlists request received');
+    const CACHE_DURATION_MS = 30 * 60 * 1000; // 30分
 
-    // 各プレイリストを非同期で判定（並列処理）
-    const playlistChecks = await Promise.all(
-      result.items.map(async (playlist: any) => ({
-        playlist,
-        isMusic: await ytService.isMusicPlaylistAsync(playlist.id)
-      }))
-    );
+    // MongoDBから音楽プレイリストのキャッシュを取得（クォータ節約）
+    if (mongoose.connection.readyState === 1) {
+      const cachedPlaylists = await CachedPlaylist.find({
+        userId: req.userId,
+        isMusicPlaylist: true
+      });
 
-    // 音楽プレイリストのみをフィルタリング
-    const musicPlaylists = playlistChecks
-      .filter(({ isMusic }) => isMusic)
-      .map(({ playlist }) => playlist);
+      if (cachedPlaylists.length > 0) {
+        // キャッシュの有効期限をチェック
+        const oldestCache = cachedPlaylists.reduce((oldest, current) =>
+          current.cachedAt < oldest.cachedAt ? current : oldest
+        );
+        const cacheAge = Date.now() - oldestCache.cachedAt.getTime();
 
-    res.json({
-      items: musicPlaylists,
-      nextPageToken: result.nextPageToken
-    });
+        if (cacheAge < CACHE_DURATION_MS) {
+          console.log(`📀 Returning ${cachedPlaylists.length} music playlists from MongoDB cache (${Math.round(cacheAge / 1000 / 60)}min old)`);
+
+          // YouTube API形式に変換して返す
+          const formattedPlaylists = cachedPlaylists.map(pl => ({
+            kind: 'youtube#playlist',
+            id: pl.playlistId,
+            snippet: {
+              title: pl.title,
+              description: pl.description,
+              thumbnails: {
+                default: { url: pl.thumbnailUrl },
+                medium: { url: pl.thumbnailUrl },
+                high: { url: pl.thumbnailUrl }
+              },
+              channelId: pl.channelId,
+              channelTitle: pl.channelTitle
+            },
+            contentDetails: {
+              itemCount: pl.itemCount
+            },
+            status: {
+              privacyStatus: pl.privacy
+            }
+          }));
+
+          return res.json({
+            items: formattedPlaylists,
+            nextPageToken: undefined
+          });
+        }
+      }
+
+      console.log('⚠️  MongoDB cache is stale or empty, returning empty for now');
+      // キャッシュが古い場合は空を返す（/api/playlistsが次回更新する）
+      return res.json({ items: [], nextPageToken: undefined });
+    }
+
+    // MongoDBが利用できない場合
+    console.log('⚠️  MongoDB not connected, returning empty');
+    res.json({ items: [], nextPageToken: undefined });
   } catch (error: any) {
-    console.error('Error fetching YouTube Music playlists:', error);
+    console.error('❌ Error fetching YouTube Music playlists:', error);
     res.json({ items: [], nextPageToken: undefined });
   }
 });

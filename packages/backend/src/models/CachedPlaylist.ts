@@ -14,6 +14,7 @@ export interface ICachedPlaylist extends Document {
   channelId?: string;
   channelTitle?: string;
   privacy?: 'public' | 'private' | 'unlisted';
+  isMusicPlaylist?: boolean; // 音楽プレイリストかどうか（キーワードベース判定）
   cachedAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -42,6 +43,10 @@ const CachedPlaylistSchema = new Schema<ICachedPlaylist>(
     privacy: {
       type: String,
       enum: ['public', 'private', 'unlisted']
+    },
+    isMusicPlaylist: {
+      type: Boolean,
+      default: false
     },
     cachedAt: {
       type: Date,

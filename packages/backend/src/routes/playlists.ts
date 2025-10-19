@@ -15,6 +15,25 @@ const router = express.Router();
 router.use(authenticate);
 
 /**
+ * DELETE /api/playlists/cache
+ * MongoDBキャッシュをクリア（開発用）
+ */
+router.delete('/cache', async (req: AuthRequest, res: Response) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      const result = await CachedPlaylist.deleteMany({ userId: req.userId });
+      console.log(`🗑️  Cleared ${result.deletedCount} playlists from cache for user ${req.userId}`);
+      res.json({ message: `Cleared ${result.deletedCount} playlists from cache` });
+    } else {
+      res.status(503).json({ error: 'MongoDB not connected' });
+    }
+  } catch (error) {
+    console.error('Error clearing playlist cache:', error);
+    res.status(500).json({ error: 'Failed to clear cache' });
+  }
+});
+
+/**
  * GET /api/playlists
  * ユーザーのプレイリスト一覧を取得
  * MongoDB優先、APIをフォールバックとして使用
@@ -100,27 +119,38 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     // 3. MongoDBにキャッシュを保存
     if (mongoose.connection.readyState === 1) {
       try {
-        const bulkOps = videoPlaylists.map((pl: any) => ({
-          updateOne: {
-            filter: {
-              userId: req.userId,
-              playlistId: pl.id
-            },
-            update: {
-              title: pl.snippet?.title,
-              description: pl.snippet?.description,
-              thumbnailUrl: pl.snippet?.thumbnails?.high?.url ||
-                           pl.snippet?.thumbnails?.medium?.url ||
-                           pl.snippet?.thumbnails?.default?.url,
-              itemCount: pl.contentDetails?.itemCount,
-              channelId: pl.snippet?.channelId,
-              channelTitle: pl.snippet?.channelTitle,
-              privacy: pl.status?.privacyStatus,
-              cachedAt: new Date()
-            },
-            upsert: true
-          }
-        }));
+        // 音楽判定キーワード
+        const musicKeywords = ['music', 'song', 'album', 'artist', 'band', '音楽', '曲', 'ミュージック', 'アルバム'];
+
+        const bulkOps = videoPlaylists.map((pl: any) => {
+          const title = (pl.snippet?.title || '').toLowerCase();
+          const description = (pl.snippet?.description || '').toLowerCase();
+          const text = title + ' ' + description;
+          const isMusicPlaylist = musicKeywords.some(keyword => text.includes(keyword.toLowerCase()));
+
+          return {
+            updateOne: {
+              filter: {
+                userId: req.userId,
+                playlistId: pl.id
+              },
+              update: {
+                title: pl.snippet?.title,
+                description: pl.snippet?.description,
+                thumbnailUrl: pl.snippet?.thumbnails?.high?.url ||
+                             pl.snippet?.thumbnails?.medium?.url ||
+                             pl.snippet?.thumbnails?.default?.url,
+                itemCount: pl.contentDetails?.itemCount,
+                channelId: pl.snippet?.channelId,
+                channelTitle: pl.snippet?.channelTitle,
+                privacy: pl.status?.privacyStatus,
+                isMusicPlaylist: isMusicPlaylist,
+                cachedAt: new Date()
+              },
+              upsert: true
+            }
+          };
+        });
 
         await CachedPlaylist.bulkWrite(bulkOps);
         console.log(`✅ Saved ${videoPlaylists.length} playlists to MongoDB cache`);
