@@ -58,8 +58,9 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     }
 
     // 1. MongoDBからキャッシュを取得
+    let cachedPlaylists: any[] = [];
     if (mongoose.connection.readyState === 1) {
-      const cachedPlaylists = await CachedPlaylist.find({ userId: req.userId });
+      cachedPlaylists = await CachedPlaylist.find({ userId: req.userId });
 
       if (cachedPlaylists.length > 0) {
         // キャッシュの有効期限をチェック
@@ -108,16 +109,39 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       console.log('⚠️  MongoDB not connected, using YouTube API directly');
     }
 
-    // 2. YouTube APIから取得
+    // 2. YouTube APIから差分取得（ETag使用）
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const result = await ytService.getPlaylists();
 
-    const videoPlaylists = result.items.filter((playlist: any) =>
-      !ytService.isMusicPlaylist(playlist)
-    );
+    // キャッシュがある場合はETagを使用
+    let videoPlaylists: any[] = [];
+
+    if (cachedPlaylists.length > 0) {
+      // 差分更新モード：ETagを使用して変更チェック
+      console.log('🔄 Using ETag-based incremental update for playlists');
+
+      // 最初のプレイリストのETagを取得（全体のETag）
+      const cachedEtag = cachedPlaylists[0]?.etag;
+      const result = await ytService.getPlaylists(undefined, cachedEtag);
+
+      if (result.etag && result.etag === cachedEtag) {
+        // ETagが一致 = 変更なし（既にキャッシュを返している）
+        console.log('📊 ETag match: Playlists not modified (using cached data)');
+      }
+
+      videoPlaylists = result.items.filter((playlist: any) =>
+        !ytService.isMusicPlaylist(playlist)
+      );
+    } else {
+      // 全取得モード
+      console.log('📥 Using full fetch mode for playlists');
+      const playlistsResult = await ytService.getPlaylists();
+      videoPlaylists = playlistsResult.items.filter((playlist: any) =>
+        !ytService.isMusicPlaylist(playlist)
+      );
+    }
 
     // 3. MongoDBにキャッシュを保存
-    if (mongoose.connection.readyState === 1) {
+    if (mongoose.connection.readyState === 1 && videoPlaylists.length > 0) {
       try {
         // 音楽判定キーワード
         const musicKeywords = ['music', 'song', 'album', 'artist', 'band', '音楽', '曲', 'ミュージック', 'アルバム'];
@@ -145,6 +169,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                 channelTitle: pl.snippet?.channelTitle,
                 privacy: pl.status?.privacyStatus,
                 isMusicPlaylist: isMusicPlaylist,
+                etag: pl.etag, // ETagを保存
                 cachedAt: new Date()
               },
               upsert: true
@@ -161,7 +186,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     res.json({
       items: videoPlaylists,
-      nextPageToken: result.nextPageToken
+      nextPageToken: undefined
     });
   } catch (error) {
     console.error('Error fetching playlists:', error);

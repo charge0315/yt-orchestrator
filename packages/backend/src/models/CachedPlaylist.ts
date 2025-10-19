@@ -15,6 +15,7 @@ export interface ICachedPlaylist extends Document {
   channelTitle?: string;
   privacy?: 'public' | 'private' | 'unlisted';
   isMusicPlaylist?: boolean; // 音楽プレイリストかどうか（キーワードベース判定）
+  etag?: string; // ETag for conditional requests（差分更新用）
   cachedAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -48,6 +49,7 @@ const CachedPlaylistSchema = new Schema<ICachedPlaylist>(
       type: Boolean,
       default: false
     },
+    etag: String,
     cachedAt: {
       type: Date,
       default: Date.now

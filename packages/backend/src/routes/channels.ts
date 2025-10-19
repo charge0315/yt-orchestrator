@@ -43,10 +43,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const CACHE_DURATION_MS = 30 * 60 * 1000; // 30分
     let shouldRefreshFromAPI = false;
+    let cachedChannels: any[] = [];
 
     // 1. MongoDBからキャッシュを取得
     if (mongoose.connection.readyState === 1) {
-      const cachedChannels = await CachedChannel.find({ userId: req.userId });
+      cachedChannels = await CachedChannel.find({ userId: req.userId });
 
       if (cachedChannels.length > 0) {
         // キャッシュの有効期限をチェック
@@ -90,34 +91,118 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       shouldRefreshFromAPI = true;
     }
 
-    // 2. YouTube APIから取得
+    // 2. YouTube APIから差分取得
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const result = await ytService.getSubscriptions();
 
-    // 各チャンネルの最新動画のサムネイルを取得
-    const enrichedSubscriptions = await Promise.all(
-      result.items.map(async (sub: any) => {
-        try {
-          const channelId = sub.snippet?.resourceId?.channelId;
-          if (channelId) {
-            const videos = await ytService.getChannelVideos(channelId, 1);
-            if (videos.length > 0) {
-              const latestVideo = videos[0];
+    // キャッシュがある場合は差分更新、ない場合は全取得
+    let enrichedSubscriptions: any[] = [];
+
+    if (mongoose.connection.readyState === 1 && cachedChannels && cachedChannels.length > 0) {
+      // 差分更新モード：キャッシュされたチャンネルの新しい動画のみチェック
+      console.log('🔄 Using incremental update mode for channels');
+
+      enrichedSubscriptions = await Promise.all(
+        cachedChannels.map(async (cached) => {
+          try {
+            const channelId = cached.channelId;
+            const lastPublishedAt = cached.latestVideoPublishedAt || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // デフォルト7日前
+
+            // 差分取得：最終チェック日時以降の動画のみ
+            const newVideos = await ytService.getChannelVideosIncremental(channelId, lastPublishedAt, 5);
+
+            if (newVideos.length > 0) {
+              const latestVideo = newVideos[0];
               return {
-                ...sub,
+                kind: 'youtube#subscription',
+                id: cached.subscriptionId,
+                snippet: {
+                  resourceId: { channelId: cached.channelId },
+                  title: cached.channelTitle,
+                  description: cached.channelDescription,
+                  thumbnails: {
+                    default: { url: cached.thumbnailUrl },
+                    medium: { url: cached.thumbnailUrl },
+                    high: { url: cached.thumbnailUrl }
+                  }
+                },
                 latestVideoId: latestVideo.id?.videoId || latestVideo.id,
                 latestVideoThumbnail: latestVideo.snippet?.thumbnails?.high?.url ||
                                      latestVideo.snippet?.thumbnails?.medium?.url ||
-                                     latestVideo.snippet?.thumbnails?.default?.url
+                                     latestVideo.snippet?.thumbnails?.default?.url,
+                latestVideoPublishedAt: latestVideo.snippet?.publishedAt ? new Date(latestVideo.snippet.publishedAt) : undefined
+              };
+            } else {
+              // 新しい動画がない場合はキャッシュをそのまま返す
+              return {
+                kind: 'youtube#subscription',
+                id: cached.subscriptionId,
+                snippet: {
+                  resourceId: { channelId: cached.channelId },
+                  title: cached.channelTitle,
+                  description: cached.channelDescription,
+                  thumbnails: {
+                    default: { url: cached.thumbnailUrl },
+                    medium: { url: cached.thumbnailUrl },
+                    high: { url: cached.thumbnailUrl }
+                  }
+                },
+                latestVideoId: cached.latestVideoId,
+                latestVideoThumbnail: cached.latestVideoThumbnail,
+                latestVideoPublishedAt: cached.latestVideoPublishedAt
               };
             }
+          } catch (error) {
+            console.error(`Failed to fetch incremental update for channel ${cached.channelTitle}:`, error);
+            // エラー時はキャッシュをそのまま返す
+            return {
+              kind: 'youtube#subscription',
+              id: cached.subscriptionId,
+              snippet: {
+                resourceId: { channelId: cached.channelId },
+                title: cached.channelTitle,
+                description: cached.channelDescription,
+                thumbnails: {
+                  default: { url: cached.thumbnailUrl },
+                  medium: { url: cached.thumbnailUrl },
+                  high: { url: cached.thumbnailUrl }
+                }
+              },
+              latestVideoId: cached.latestVideoId,
+              latestVideoThumbnail: cached.latestVideoThumbnail
+            };
           }
-        } catch (error) {
-          console.error(`Failed to fetch latest video for channel ${sub.snippet?.title}:`, error);
-        }
-        return sub;
-      })
-    );
+        })
+      );
+    } else {
+      // 全取得モード：初回または キャッシュなし
+      console.log('📥 Using full fetch mode for channels');
+      const result = await ytService.getSubscriptions();
+
+      enrichedSubscriptions = await Promise.all(
+        result.items.map(async (sub: any) => {
+          try {
+            const channelId = sub.snippet?.resourceId?.channelId;
+            if (channelId) {
+              const videos = await ytService.getChannelVideos(channelId, 1);
+              if (videos.length > 0) {
+                const latestVideo = videos[0];
+                return {
+                  ...sub,
+                  latestVideoId: latestVideo.id?.videoId || latestVideo.id,
+                  latestVideoThumbnail: latestVideo.snippet?.thumbnails?.high?.url ||
+                                       latestVideo.snippet?.thumbnails?.medium?.url ||
+                                       latestVideo.snippet?.thumbnails?.default?.url,
+                  latestVideoPublishedAt: latestVideo.snippet?.publishedAt ? new Date(latestVideo.snippet.publishedAt) : undefined
+                };
+              }
+            }
+          } catch (error) {
+            console.error(`Failed to fetch latest video for channel ${sub.snippet?.title}:`, error);
+          }
+          return sub;
+        })
+      );
+    }
 
     // 3. MongoDBにキャッシュを保存
     if (mongoose.connection.readyState === 1) {
@@ -136,6 +221,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                            sub.snippet?.thumbnails?.default?.url,
               latestVideoId: sub.latestVideoId,
               latestVideoThumbnail: sub.latestVideoThumbnail,
+              latestVideoPublishedAt: sub.latestVideoPublishedAt, // 差分更新用の日時を保存
               subscriptionId: sub.id,
               cachedAt: new Date()
             },
@@ -144,7 +230,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         }));
 
         await CachedChannel.bulkWrite(bulkOps);
-        console.log(`✅ Saved ${enrichedSubscriptions.length} channels to MongoDB cache`);
+        console.log(`✅ Saved ${enrichedSubscriptions.length} channels to MongoDB cache (with incremental update metadata)`);
       } catch (dbError) {
         console.error('Failed to save channels to MongoDB:', dbError);
       }

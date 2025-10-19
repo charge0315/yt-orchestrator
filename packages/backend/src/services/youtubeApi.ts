@@ -64,30 +64,45 @@ export class YouTubeApiService {
   /**
    * ユーザーのプレイリスト一覧を取得
    * @param pageToken ページネーション用トークン（オプション）
-   * @returns プレイリストの配列とnextPageToken
+   * @param etag 前回取得時のETag（差分確認用）
+   * @returns プレイリストの配列とnextPageToken、etag
    */
-  async getPlaylists(pageToken?: string) {
+  async getPlaylists(pageToken?: string, etag?: string) {
     const cacheKey = `playlists:${pageToken || 'initial'}`;
     const cached = this.getFromCache(cacheKey);
     if (cached) return cached;
 
     try {
+      // ETagを使った条件付きリクエスト（304 Not Modified対応）
+      const headers: any = {};
+      if (etag) {
+        headers['If-None-Match'] = etag;
+      }
+
       const response = await this.youtube.playlists.list({
         part: ['snippet', 'contentDetails'],
         mine: true,
         maxResults: 25, // クォータ削減: 50 → 25
         pageToken,
-        fields: 'items(id,snippet(title,description,thumbnails),contentDetails(itemCount)),nextPageToken' // 必要なフィールドのみ
-      });
+        fields: 'etag,items(id,etag,snippet(title,description,thumbnails),contentDetails(itemCount)),nextPageToken' // etagも取得
+      }, { headers });
+
       const result = {
         items: response.data.items || [],
-        nextPageToken: response.data.nextPageToken
+        nextPageToken: response.data.nextPageToken,
+        etag: response.data.etag // レスポンスのETagを保存
       };
       this.setCache(cacheKey, result);
       return result;
-    } catch (error) {
+    } catch (error: any) {
+      // 304 Not Modified の場合、変更なしなのでキャッシュを返す
+      if (error?.code === 304) {
+        console.log('📊 ETag match: Playlist not modified (quota saved!)');
+        const cached = this.getFromCache(cacheKey);
+        if (cached) return cached;
+      }
       this.handleApiError(error, 'getPlaylists');
-      return { items: [], nextPageToken: undefined };
+      return { items: [], nextPageToken: undefined, etag: undefined };
     }
   }
 
@@ -315,20 +330,43 @@ export class YouTubeApiService {
    * プレイリスト内のアイテム（曲/動画）一覧を取得
    * @param playlistId プレイリストID
    * @param pageToken ページネーション用トークン（オプション）
-   * @returns プレイリストアイテムの配列とnextPageToken
+   * @param etag 前回取得時のETag（差分確認用）
+   * @returns プレイリストアイテムの配列とnextPageToken、etag
    */
-  async getPlaylistItems(playlistId: string, pageToken?: string) {
-    const response = await this.youtube.playlistItems.list({
-      part: ['snippet'], // contentDetailsは不要（videoIdはsnippet.resourceIdで取得可能）
-      playlistId,
-      maxResults: 25, // クォータ削減: 50 → 25
-      pageToken,
-      fields: 'items(id,snippet(title,thumbnails,resourceId)),nextPageToken' // 必要なフィールドのみ
-    });
-    return {
-      items: response.data.items || [],
-      nextPageToken: response.data.nextPageToken
-    };
+  async getPlaylistItems(playlistId: string, pageToken?: string, etag?: string) {
+    try {
+      // ETagを使った条件付きリクエスト
+      const headers: any = {};
+      if (etag) {
+        headers['If-None-Match'] = etag;
+      }
+
+      const response = await this.youtube.playlistItems.list({
+        part: ['snippet'], // contentDetailsは不要（videoIdはsnippet.resourceIdで取得可能）
+        playlistId,
+        maxResults: 25, // クォータ削減: 50 → 25
+        pageToken,
+        fields: 'etag,items(id,etag,snippet(title,thumbnails,resourceId,publishedAt)),nextPageToken' // etagも取得
+      }, { headers });
+
+      return {
+        items: response.data.items || [],
+        nextPageToken: response.data.nextPageToken,
+        etag: response.data.etag
+      };
+    } catch (error: any) {
+      // 304 Not Modified の場合
+      if (error?.code === 304) {
+        console.log(`📊 ETag match: Playlist items not modified for ${playlistId} (quota saved!)`);
+        return {
+          items: [],
+          nextPageToken: undefined,
+          etag,
+          notModified: true // 変更なしフラグ
+        };
+      }
+      throw error;
+    }
   }
 
   /**
@@ -448,6 +486,34 @@ export class YouTubeApiService {
       return items;
     } catch (error) {
       this.handleApiError(error, 'getChannelVideos');
+      return [];
+    }
+  }
+
+  /**
+   * チャンネルの新しい動画のみを取得（差分更新）
+   * publishedAfterパラメータを使用してクォータを節約
+   * @param channelId チャンネルID
+   * @param publishedAfter この日時以降に公開された動画のみ取得
+   * @param maxResults 取得する最大件数（デフォルト: 5）
+   * @returns 動画の配列
+   */
+  async getChannelVideosIncremental(channelId: string, publishedAfter: Date, maxResults = 5) {
+    try {
+      const response = await this.youtube.search.list({
+        part: ['snippet'],
+        channelId,
+        order: 'date',
+        type: ['video'],
+        maxResults,
+        publishedAfter: publishedAfter.toISOString(), // 差分更新：この日時以降のみ
+        fields: 'items(id,snippet(title,thumbnails,channelTitle,publishedAt,channelId))' // 必要なフィールドのみ
+      });
+      const items = response.data.items || [];
+      console.log(`📊 Incremental fetch for channel ${channelId}: found ${items.length} new videos since ${publishedAfter.toISOString()}`);
+      return items;
+    } catch (error) {
+      this.handleApiError(error, 'getChannelVideosIncremental');
       return [];
     }
   }

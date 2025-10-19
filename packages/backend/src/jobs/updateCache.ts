@@ -20,55 +20,54 @@ export function registerUserToken(userId: string, accessToken: string) {
 
 /**
  * チャンネルの差分更新
- * pageTokenを使って新しい動画のみ取得
+ * publishedAfterパラメータを使って新しい動画のみ取得（クォータ最適化）
  */
 async function updateChannelCache(userId: string, accessToken: string) {
   try {
     const ytService = new YouTubeApiService(accessToken);
+    const { CachedChannel } = await import('../models/CachedChannel.js');
 
-    // ユーザーのチャンネル一覧をDBから取得
-    const channels = await Channel.find({ userId });
+    // MongoDBキャッシュから取得
+    const cachedChannels = await CachedChannel.find({ userId });
 
-    for (const channel of channels) {
+    if (cachedChannels.length === 0) {
+      console.log(`⚠️  No cached channels found for user ${userId}`);
+      return;
+    }
+
+    let updatedCount = 0;
+    for (const channel of cachedChannels) {
       try {
-        // 最新動画を取得（最大5件）
-        const videos = await ytService.getChannelVideos(channel.channelId, 5);
+        // 最後の公開日時（デフォルト：7日前）
+        const lastPublishedAt = channel.latestVideoPublishedAt || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-        if (videos.length > 0) {
-          const latestVideo = videos[0];
+        // 差分取得：publishedAfterを使用
+        const newVideos = await ytService.getChannelVideosIncremental(channel.channelId, lastPublishedAt, 5);
 
-          // DBの最新動画と比較して、新しい動画がある場合のみ更新
-          const dbLatestVideoId = channel.latestVideoId;
-          const apiLatestVideoId = latestVideo.id?.videoId || latestVideo.id;
+        if (newVideos.length > 0) {
+          const latestVideo = newVideos[0];
+          console.log(`📹 New video found for channel ${channel.channelTitle}: ${latestVideo.snippet?.title}`);
 
-          if (dbLatestVideoId !== apiLatestVideoId) {
-            console.log(`New video found for channel ${channel.title}: ${latestVideo.snippet?.title}`);
-
-            // 新しい動画情報で更新
-            channel.latestVideos = videos.map((video: any) => ({
-              videoId: video.id?.videoId || video.id,
-              title: video.snippet?.title || '',
-              thumbnail: video.snippet?.thumbnails?.medium?.url || '',
-              publishedAt: new Date(video.snippet?.publishedAt),
-              channelId: video.snippet?.channelId || '',
-              channelTitle: video.snippet?.channelTitle || ''
-            }));
-
-            channel.latestVideoId = apiLatestVideoId;
-            channel.latestVideoThumbnail = latestVideo.snippet?.thumbnails?.high?.url ||
-                                          latestVideo.snippet?.thumbnails?.medium?.url ||
-                                          latestVideo.snippet?.thumbnails?.default?.url;
-            channel.lastUpdated = new Date();
-
-            await channel.save();
+          // 新しい動画情報で更新
+          const videoId = latestVideo.id?.videoId || (typeof latestVideo.id === 'string' ? latestVideo.id : '');
+          channel.latestVideoId = videoId;
+          channel.latestVideoThumbnail = latestVideo.snippet?.thumbnails?.high?.url ||
+                                        latestVideo.snippet?.thumbnails?.medium?.url ||
+                                        latestVideo.snippet?.thumbnails?.default?.url || undefined;
+          if (latestVideo.snippet?.publishedAt) {
+            channel.latestVideoPublishedAt = new Date(latestVideo.snippet.publishedAt);
           }
+          channel.cachedAt = new Date();
+
+          await channel.save();
+          updatedCount++;
         }
       } catch (error) {
-        console.error(`Error updating channel ${channel.title}:`, error);
+        console.error(`Error updating channel ${channel.channelTitle}:`, error);
       }
     }
 
-    console.log(`✅ Updated ${channels.length} channels for user ${userId}`);
+    console.log(`✅ Updated ${updatedCount}/${cachedChannels.length} channels for user ${userId} (incremental mode)`);
   } catch (error) {
     console.error('Error in updateChannelCache:', error);
   }
@@ -76,48 +75,55 @@ async function updateChannelCache(userId: string, accessToken: string) {
 
 /**
  * プレイリストの差分更新
- * pageTokenを使って新しいアイテムのみ取得
+ * ETagを使って変更があった場合のみ取得（クォータ最適化）
  */
 async function updatePlaylistCache(userId: string, accessToken: string) {
   try {
     const ytService = new YouTubeApiService(accessToken);
+    const { CachedPlaylist } = await import('../models/CachedPlaylist.js');
 
-    // ユーザーのプレイリスト一覧をDBから取得
-    const playlists = await Playlist.find({ userId });
+    // MongoDBキャッシュから取得
+    const cachedPlaylists = await CachedPlaylist.find({ userId });
 
-    for (const playlist of playlists) {
+    if (cachedPlaylists.length === 0) {
+      console.log(`⚠️  No cached playlists found for user ${userId}`);
+      return;
+    }
+
+    let updatedCount = 0;
+    for (const playlist of cachedPlaylists) {
       try {
-        // プレイリストアイテムを取得
-        const itemsResult = await ytService.getPlaylistItems(playlist.playlistId);
+        // ETagを使った条件付きリクエスト
+        const itemsResult = await ytService.getPlaylistItems(playlist.playlistId, undefined, playlist.etag);
 
-        // DBのアイテム数とAPI のアイテム数を比較
-        if (itemsResult.items.length !== playlist.items.length) {
-          console.log(`Playlist items changed for ${playlist.title}: ${playlist.items.length} -> ${itemsResult.items.length}`);
+        // 304 Not Modified（変更なし）の場合はスキップ
+        if ((itemsResult as any).notModified) {
+          console.log(`📊 Playlist "${playlist.title}" not modified (ETag match)`);
+          continue;
+        }
 
-          // アイテム情報を更新
-          playlist.items = itemsResult.items.map((item: any, index: number) => ({
-            videoId: item.snippet?.resourceId?.videoId || '',
-            title: item.snippet?.title || '',
-            thumbnail: item.snippet?.thumbnails?.medium?.url || '',
-            addedAt: new Date(item.snippet?.publishedAt),
-            position: index
-          }));
+        // 変更があった場合のみ更新
+        if (itemsResult.items.length > 0 || itemsResult.etag !== playlist.etag) {
+          console.log(`📝 Playlist items changed for ${playlist.title}: ${playlist.itemCount || 0} -> ${itemsResult.items.length}`);
 
           playlist.itemCount = itemsResult.items.length;
-          playlist.lastUpdated = new Date();
+          playlist.etag = itemsResult.etag || undefined; // 新しいETagを保存
+          playlist.cachedAt = new Date();
 
           if (itemsResult.items.length > 0) {
-            playlist.thumbnail = itemsResult.items[0].snippet?.thumbnails?.medium?.url || '';
+            const thumbnailUrl = itemsResult.items[0].snippet?.thumbnails?.medium?.url;
+            playlist.thumbnailUrl = thumbnailUrl || undefined;
           }
 
           await playlist.save();
+          updatedCount++;
         }
       } catch (error) {
         console.error(`Error updating playlist ${playlist.title}:`, error);
       }
     }
 
-    console.log(`✅ Updated ${playlists.length} playlists for user ${userId}`);
+    console.log(`✅ Updated ${updatedCount}/${cachedPlaylists.length} playlists for user ${userId} (ETag mode)`);
   } catch (error) {
     console.error('Error in updatePlaylistCache:', error);
   }
