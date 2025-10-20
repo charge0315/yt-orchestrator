@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { channelsApi, playlistsApi, artistsApi, ytmusicApi, youtubeDataApi, recommendationsApi } from '../api/client'
 import SkeletonLoader from '../components/SkeletonLoader'
-import VideoPlayer from '../components/VideoPlayer'
+import MiniPlayer from '../components/MiniPlayer'
 import './HomePage.css'
 
 function HomePage() {
@@ -21,6 +21,9 @@ function HomePage() {
   const [playlists, setPlaylists] = useState<any[]>([]) // YouTube再生リスト
   const [artists, setArtists] = useState<any[]>([]) // YouTube Musicアーティスト
   const [ytmPlaylists, setYtmPlaylists] = useState<any[]>([]) // YouTube Musicプレイリスト
+
+  // 最新動画タイトルのマップ（チャンネルID/プレイリストID → 最新動画タイトル）
+  const [latestVideoTitles, setLatestVideoTitles] = useState<Record<string, string>>({})
 
   // ソート設定
   const [channelSort, setChannelSort] = useState<'recent' | 'name'>('recent')
@@ -39,6 +42,7 @@ function HomePage() {
 
   // 動画プレイヤー
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
+  const [playingVideoTitle, setPlayingVideoTitle] = useState<string>('')
 
   // 初回レンダリング時にデータをロード
   useEffect(() => {
@@ -111,6 +115,7 @@ function HomePage() {
 
   /**
    * 登録チャンネルの最新動画を読み込む（上位10件）
+   * 同時に各チャンネルの最新動画タイトルも取得
    */
   const loadLatestVideos = async (allChannels: any[]) => {
     try {
@@ -119,9 +124,19 @@ function HomePage() {
         videoId: video.id?.videoId || video.videoId,
         title: video.snippet?.title || video.title,
         thumbnail: video.snippet?.thumbnails?.medium?.url || video.thumbnail,
-        channelName: video.snippet?.channelTitle || video.channelTitle
+        channelName: video.snippet?.channelTitle || video.channelTitle,
+        channelId: video.snippet?.channelId
       }))
       setLatestVideos(videos)
+
+      // チャンネルごとの最新動画タイトルマップを作成
+      const titleMap: Record<string, string> = {}
+      videos.forEach((video: any) => {
+        if (video.channelId && !titleMap[video.channelId]) {
+          titleMap[video.channelId] = video.title
+        }
+      })
+      setLatestVideoTitles(titleMap)
     } catch (error) {
       console.log('Latest videos error:', error)
       setLatestVideos([])
@@ -142,16 +157,18 @@ function HomePage() {
 
   /**
    * チャンネルをクリックした時の処理
-   * チャンネルの最新動画をモーダルで再生
+   * チャンネルの最新動画をミニプレイヤーで再生
    */
   const handleChannelClick = async (channel: any) => {
     try {
       const channelId = channel.snippet?.resourceId?.channelId || channel.id
       const response = await youtubeDataApi.searchVideos(`channel:${channelId}`, 1)
       if (response.data.length > 0) {
-        const videoId = response.data[0].id?.videoId || response.data[0].videoId
+        const video = response.data[0]
+        const videoId = video.id?.videoId || video.videoId
+        const title = video.snippet?.title || channel.snippet?.title
         if (videoId) {
-          playVideo(videoId)
+          playVideo(videoId, title)
         }
       }
     } catch (error) {
@@ -181,10 +198,11 @@ function HomePage() {
   }
 
   /**
-   * 動画をモーダルで再生
+   * 動画をミニプレイヤーで再生
    */
-  const playVideo = (videoId: string) => {
+  const playVideo = (videoId: string, title?: string) => {
     setPlayingVideoId(videoId)
+    setPlayingVideoTitle(title || '再生中')
   }
 
   /**
@@ -192,14 +210,15 @@ function HomePage() {
    */
   const closePlayer = () => {
     setPlayingVideoId(null)
+    setPlayingVideoTitle('')
   }
 
   return (
     <div className="home-page">
       <h1>YouTube Orchestrator</h1>
 
-      {/* 動画プレイヤーモーダル */}
-      <VideoPlayer videoId={playingVideoId} onClose={closePlayer} />
+      {/* ミニプレイヤー */}
+      <MiniPlayer videoId={playingVideoId} videoTitle={playingVideoTitle} onClose={closePlayer} />
       
       <section className="latest-section" style={{ marginBottom: '32px', backgroundColor: '#1a1a1a', padding: '24px', borderRadius: '12px', border: '1px solid #2a2a2a' }}>
         <h2>🆕 最新情報</h2>
@@ -208,13 +227,13 @@ function HomePage() {
         ) : latestVideos.length > 0 ? (
           <div className="items-scroll">
             {latestVideos.map((video: any, idx: number) => (
-              <div key={idx} style={{ minWidth: '210px', width: '210px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }} onClick={() => playVideo(video.videoId)}>
+              <div key={idx} style={{ minWidth: '210px', width: '210px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }} onClick={() => playVideo(video.videoId, video.title)}>
                 {video.thumbnail && (
                   <img src={video.thumbnail} alt={video.title} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover' }} />
                 )}
                 <div style={{ padding: '12px' }}>
                   <h4 style={{ fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{video.title}</h4>
-                  <p style={{ fontSize: '12px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{video.channelName}</p>
+                  <p style={{ fontSize: '16px', fontWeight: 600, color: '#aaaaaa', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{video.channelName}</p>
                 </div>
               </div>
             ))}
@@ -238,21 +257,26 @@ function HomePage() {
             </select>
           </div>
           <div className="items-scroll">
-            {sortItems(channels, channelSort).map((ch: any) => (
-              <div key={ch.id} className="item-card" onClick={() => handleChannelClick(ch)}>
-                {hasRecentUpdate(ch) && <span className="new-badge">NEW</span>}
-                {/* 最新動画のサムネイルを優先的に表示、なければチャンネルのサムネイル */}
-                {(ch.latestVideoThumbnail || ch.snippet?.thumbnails?.default?.url) && (
-                  <img
-                    src={ch.latestVideoThumbnail || ch.snippet.thumbnails.default.url}
-                    alt={ch.snippet.title}
-                  />
-                )}
-                <div className="card-content">
-                  <p>{ch.snippet?.title}</p>
+            {sortItems(channels, channelSort).map((ch: any) => {
+              const channelId = ch.snippet?.resourceId?.channelId || ch.id
+              const latestTitle = latestVideoTitles[channelId]
+              return (
+                <div key={ch.id} className="item-card" onClick={() => handleChannelClick(ch)}>
+                  {hasRecentUpdate(ch) && <span className="new-badge">NEW</span>}
+                  {/* 最新動画のサムネイルを優先的に表示、なければチャンネルのサムネイル */}
+                  {(ch.latestVideoThumbnail || ch.snippet?.thumbnails?.default?.url) && (
+                    <img
+                      src={ch.latestVideoThumbnail || ch.snippet.thumbnails.default.url}
+                      alt={ch.snippet.title}
+                    />
+                  )}
+                  <div className="card-content">
+                    {latestTitle && <h4>{latestTitle}</h4>}
+                    <p>{ch.snippet?.title}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
             {channels.length === 0 && <p className="empty">{!isAuthenticated ? 'ログインしてください' : '登録チャンネルがありません'}</p>}
           </div>
         </div>
@@ -267,12 +291,16 @@ function HomePage() {
           </div>
           <div className="items-scroll">
             {sortItems(playlists, playlistSort).map((pl: any) => (
-              <div key={pl.id || pl._id} className="item-card" onClick={() => navigate('/playlists')}>
+              <div key={pl.id || pl._id} className="item-card" onClick={() => {
+                const title = pl.snippet?.title || pl.name
+                playVideo(pl.id, title)
+              }}>
                 {pl.snippet?.thumbnails?.default?.url && (
                   <img src={pl.snippet.thumbnails.default.url} alt={pl.snippet.title || pl.name} />
                 )}
                 <div className="card-content">
                   <h4>{pl.snippet?.title || pl.name}</h4>
+                  <p>プレイリスト</p>
                 </div>
               </div>
             ))}
@@ -293,21 +321,26 @@ function HomePage() {
             </select>
           </div>
           <div className="items-scroll">
-            {sortItems(artists, artistSort).map((artist: any) => (
-              <div key={artist.id} className="item-card" onClick={() => handleChannelClick(artist)}>
-                {hasRecentUpdate(artist) && <span className="new-badge">NEW</span>}
-                {/* 最新動画のサムネイルを優先的に表示、なければチャンネルのサムネイル */}
-                {(artist.latestVideoThumbnail || artist.snippet?.thumbnails?.default?.url) && (
-                  <img
-                    src={artist.latestVideoThumbnail || artist.snippet.thumbnails.default.url}
-                    alt={artist.snippet.title}
-                  />
-                )}
-                <div className="card-content">
-                  <p>{artist.snippet?.title}</p>
+            {sortItems(artists, artistSort).map((artist: any) => {
+              const channelId = artist.snippet?.resourceId?.channelId || artist.id
+              const latestTitle = latestVideoTitles[channelId]
+              return (
+                <div key={artist.id} className="item-card" onClick={() => handleChannelClick(artist)}>
+                  {hasRecentUpdate(artist) && <span className="new-badge">NEW</span>}
+                  {/* 最新動画のサムネイルを優先的に表示、なければチャンネルのサムネイル */}
+                  {(artist.latestVideoThumbnail || artist.snippet?.thumbnails?.default?.url) && (
+                    <img
+                      src={artist.latestVideoThumbnail || artist.snippet.thumbnails.default.url}
+                      alt={artist.snippet.title}
+                    />
+                  )}
+                  <div className="card-content">
+                    {latestTitle && <h4>{latestTitle}</h4>}
+                    <p>{artist.snippet?.title}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
             {artists.length === 0 && <p className="empty">{!isAuthenticated ? 'ログインしてください' : '登録アーティストがありません'}</p>}
           </div>
         </div>
@@ -322,12 +355,16 @@ function HomePage() {
           </div>
           <div className="items-scroll">
             {sortItems(ytmPlaylists, ytmPlaylistSort).map((pl: any) => (
-              <div key={pl._id || pl.id} className="item-card" onClick={() => navigate('/playlists')}>
+              <div key={pl._id || pl.id} className="item-card" onClick={() => {
+                const title = pl.name
+                playVideo(pl.id, title)
+              }}>
                 {(pl.thumbnail || pl.songs?.[0]?.thumbnail) && (
                   <img src={pl.thumbnail || pl.songs[0].thumbnail} alt={pl.name} />
                 )}
                 <div className="card-content">
                   <h4>{pl.name}</h4>
+                  <p>プレイリスト</p>
                 </div>
               </div>
             ))}
@@ -346,7 +383,7 @@ function HomePage() {
               <div
                 key={idx}
                 style={{ minWidth: '210px', width: '210px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }}
-                onClick={() => rec.videoId && playVideo(rec.videoId)}
+                onClick={() => rec.videoId && playVideo(rec.videoId, rec.title)}
               >
                 {/* サムネイル画像 */}
                 {rec.thumbnail ? (
