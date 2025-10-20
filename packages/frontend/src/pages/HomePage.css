@@ -88,7 +88,7 @@
 }
 
 .item-card {
-  background-color: #2a2a2a;
+  background-color: transparent;
   padding: 0;
   border-radius: 12px;
   cursor: pointer;
@@ -98,13 +98,10 @@
   animation: fadeInUp 0.5s ease;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 .item-card:hover {
-  background-color: #3a3a3a;
   transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
 @keyframes fadeInUp {
@@ -135,25 +132,40 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   object-fit: cover;
+  border-radius: 12px;
   transition: transform 0.3s ease;
+  background-color: #2a2a2a;
 }
 
 .item-card:hover img {
   transform: scale(1.05);
 }
 
-.item-card p {
+.item-card .card-content {
+  padding: 12px 0;
+}
+
+.item-card h4 {
   font-size: 14px;
+  font-weight: 500;
   color: #ffffff;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  white-space: normal;
   line-height: 1.4;
+  margin: 0 0 4px 0;
+}
+
+.item-card p {
+  font-size: 16px;
+  font-weight: 600;
+  color: #aaaaaa;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   margin: 0;
-  padding: 12px;
 }
 
 .empty {

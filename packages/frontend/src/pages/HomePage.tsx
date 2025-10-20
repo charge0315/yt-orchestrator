@@ -246,10 +246,11 @@ function HomePage() {
                   <img
                     src={ch.latestVideoThumbnail || ch.snippet.thumbnails.default.url}
                     alt={ch.snippet.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 )}
-                <p>{ch.snippet?.title}</p>
+                <div className="card-content">
+                  <p>{ch.snippet?.title}</p>
+                </div>
               </div>
             ))}
             {channels.length === 0 && <p className="empty">{!isAuthenticated ? 'ログインしてください' : '登録チャンネルがありません'}</p>}
@@ -270,7 +271,9 @@ function HomePage() {
                 {pl.snippet?.thumbnails?.default?.url && (
                   <img src={pl.snippet.thumbnails.default.url} alt={pl.snippet.title || pl.name} />
                 )}
-                <p>{pl.snippet?.title || pl.name}</p>
+                <div className="card-content">
+                  <h4>{pl.snippet?.title || pl.name}</h4>
+                </div>
               </div>
             ))}
             {playlists.length === 0 && <p className="empty">{!isAuthenticated ? 'ログインしてください' : '再生リストがありません'}</p>}
@@ -298,10 +301,11 @@ function HomePage() {
                   <img
                     src={artist.latestVideoThumbnail || artist.snippet.thumbnails.default.url}
                     alt={artist.snippet.title}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 )}
-                <p>{artist.snippet?.title}</p>
+                <div className="card-content">
+                  <p>{artist.snippet?.title}</p>
+                </div>
               </div>
             ))}
             {artists.length === 0 && <p className="empty">{!isAuthenticated ? 'ログインしてください' : '登録アーティストがありません'}</p>}
@@ -322,7 +326,9 @@ function HomePage() {
                 {(pl.thumbnail || pl.songs?.[0]?.thumbnail) && (
                   <img src={pl.thumbnail || pl.songs[0].thumbnail} alt={pl.name} />
                 )}
-                <p>{pl.name}</p>
+                <div className="card-content">
+                  <h4>{pl.name}</h4>
+                </div>
               </div>
             ))}
             {ytmPlaylists.length === 0 && <p className="empty">{!isAuthenticated ? 'ログインしてください' : 'プレイリストがありません'}</p>}
