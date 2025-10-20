@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { channelsApi, playlistsApi, artistsApi, ytmusicApi, youtubeDataApi, recommendationsApi } from '../api/client'
 import SkeletonLoader from '../components/SkeletonLoader'
-import MiniPlayer from '../components/MiniPlayer'
+import VideoPlayer from '../components/VideoPlayer'
 import './HomePage.css'
 
 function HomePage() {
@@ -42,7 +42,7 @@ function HomePage() {
 
   // 動画プレイヤー
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null)
-  const [playingVideoTitle, setPlayingVideoTitle] = useState<string>('')
+  const [playingPlaylistId, setPlayingPlaylistId] = useState<string | null>(null)
 
   // 初回レンダリング時にデータをロード
   useEffect(() => {
@@ -130,7 +130,16 @@ function HomePage() {
       setLatestVideos(videos)
 
       // チャンネルごとの最新動画タイトルマップを作成
+      // バックエンドから直接取得したlatestVideoTitleを優先
       const titleMap: Record<string, string> = {}
+      allChannels.forEach((channel: any) => {
+        const channelId = channel.snippet?.resourceId?.channelId || channel.id
+        if (channelId && channel.latestVideoTitle) {
+          titleMap[channelId] = channel.latestVideoTitle
+        }
+      })
+
+      // 新リリースAPIからの動画タイトルで補完（バックエンドにない場合）
       videos.forEach((video: any) => {
         if (video.channelId && !titleMap[video.channelId]) {
           titleMap[video.channelId] = video.title
@@ -157,18 +166,26 @@ function HomePage() {
 
   /**
    * チャンネルをクリックした時の処理
-   * チャンネルの最新動画をミニプレイヤーで再生
+   * キャッシュされた最新動画をプレイヤーで再生（APIクォータ節約）
    */
   const handleChannelClick = async (channel: any) => {
     try {
+      // まずキャッシュされた最新動画IDを使用
+      const videoId = channel.latestVideoId
+
+      if (videoId) {
+        playVideo(videoId)
+        return
+      }
+
+      // キャッシュになければAPI呼び出し（クォータ超過時は失敗する可能性あり）
       const channelId = channel.snippet?.resourceId?.channelId || channel.id
       const response = await youtubeDataApi.searchVideos(`channel:${channelId}`, 1)
       if (response.data.length > 0) {
         const video = response.data[0]
-        const videoId = video.id?.videoId || video.videoId
-        const title = video.snippet?.title || channel.snippet?.title
-        if (videoId) {
-          playVideo(videoId, title)
+        const fallbackVideoId = video.id?.videoId || video.videoId
+        if (fallbackVideoId) {
+          playVideo(fallbackVideoId)
         }
       }
     } catch (error) {
@@ -198,11 +215,19 @@ function HomePage() {
   }
 
   /**
-   * 動画をミニプレイヤーで再生
+   * 動画をプレイヤーで再生
    */
-  const playVideo = (videoId: string, title?: string) => {
+  const playVideo = (videoId: string) => {
     setPlayingVideoId(videoId)
-    setPlayingVideoTitle(title || '再生中')
+    setPlayingPlaylistId(null) // プレイリストをクリア
+  }
+
+  /**
+   * プレイリストをプレイヤーで再生
+   */
+  const playPlaylist = (playlistId: string) => {
+    setPlayingPlaylistId(playlistId)
+    setPlayingVideoId(null) // 単一動画IDをクリア
   }
 
   /**
@@ -210,15 +235,19 @@ function HomePage() {
    */
   const closePlayer = () => {
     setPlayingVideoId(null)
-    setPlayingVideoTitle('')
+    setPlayingPlaylistId(null)
   }
 
   return (
     <div className="home-page">
       <h1>YouTube Orchestrator</h1>
 
-      {/* ミニプレイヤー */}
-      <MiniPlayer videoId={playingVideoId} videoTitle={playingVideoTitle} onClose={closePlayer} />
+      {/* 動画プレイヤー */}
+      <VideoPlayer
+        videoId={playingVideoId}
+        playlistId={playingPlaylistId}
+        onClose={closePlayer}
+      />
       
       <section className="latest-section" style={{ marginBottom: '32px', backgroundColor: '#1a1a1a', padding: '24px', borderRadius: '12px', border: '1px solid #2a2a2a' }}>
         <h2>🆕 最新情報</h2>
@@ -227,7 +256,7 @@ function HomePage() {
         ) : latestVideos.length > 0 ? (
           <div className="items-scroll">
             {latestVideos.map((video: any, idx: number) => (
-              <div key={idx} style={{ minWidth: '210px', width: '210px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }} onClick={() => playVideo(video.videoId, video.title)}>
+              <div key={idx} style={{ minWidth: '210px', width: '210px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }} onClick={() => playVideo(video.videoId)}>
                 {video.thumbnail && (
                   <img src={video.thumbnail} alt={video.title} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover' }} />
                 )}
@@ -291,10 +320,7 @@ function HomePage() {
           </div>
           <div className="items-scroll">
             {sortItems(playlists, playlistSort).map((pl: any) => (
-              <div key={pl.id || pl._id} className="item-card" onClick={() => {
-                const title = pl.snippet?.title || pl.name
-                playVideo(pl.id, title)
-              }}>
+              <div key={pl.id || pl._id} className="item-card" onClick={() => playPlaylist(pl.id)}>
                 {pl.snippet?.thumbnails?.default?.url && (
                   <img src={pl.snippet.thumbnails.default.url} alt={pl.snippet.title || pl.name} />
                 )}
@@ -355,10 +381,7 @@ function HomePage() {
           </div>
           <div className="items-scroll">
             {sortItems(ytmPlaylists, ytmPlaylistSort).map((pl: any) => (
-              <div key={pl._id || pl.id} className="item-card" onClick={() => {
-                const title = pl.name
-                playVideo(pl.id, title)
-              }}>
+              <div key={pl._id || pl.id} className="item-card" onClick={() => playPlaylist(pl.id)}>
                 {(pl.thumbnail || pl.songs?.[0]?.thumbnail) && (
                   <img src={pl.thumbnail || pl.songs[0].thumbnail} alt={pl.name} />
                 )}
@@ -383,7 +406,7 @@ function HomePage() {
               <div
                 key={idx}
                 style={{ minWidth: '210px', width: '210px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }}
-                onClick={() => rec.videoId && playVideo(rec.videoId, rec.title)}
+                onClick={() => rec.videoId && playVideo(rec.videoId)}
               >
                 {/* サムネイル画像 */}
                 {rec.thumbnail ? (

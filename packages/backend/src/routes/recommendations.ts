@@ -26,7 +26,7 @@ router.use(authenticate);
  */
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const userId = (req.session as any).googleId;
+    const userId = req.userId;
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }

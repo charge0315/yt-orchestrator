@@ -2,7 +2,7 @@
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 400px;
+  width: 1000px;
   background-color: #1a1a1a;
   border: 1px solid #3a3a3a;
   border-radius: 12px;
@@ -13,7 +13,7 @@
 }
 
 .mini-player.minimized {
-  width: 300px;
+  width: 400px;
 }
 
 .mini-player-header {
@@ -72,10 +72,31 @@
 }
 
 /* レスポンシブ対応 */
+@media (max-width: 1200px) {
+  .mini-player {
+    width: 800px;
+  }
+
+  .mini-player.minimized {
+    width: 350px;
+  }
+}
+
+@media (max-width: 900px) {
+  .mini-player {
+    width: calc(100% - 40px);
+    max-width: 600px;
+  }
+
+  .mini-player.minimized {
+    width: 300px;
+  }
+}
+
 @media (max-width: 768px) {
   .mini-player {
     width: calc(100% - 40px);
-    max-width: 400px;
+    max-width: 500px;
   }
 
   .mini-player.minimized {

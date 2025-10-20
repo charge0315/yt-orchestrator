@@ -6,6 +6,7 @@ import express, { Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { YouTubeApiService } from '../services/youtubeApi.js';
 import { cache } from '../utils/cache.js';
+import { CachedChannel } from '../models/CachedChannel.js';
 
 const router = express.Router();
 
@@ -15,46 +16,44 @@ router.use(authenticate);
 /**
  * GET /api/artists
  * 登録中のアーティスト（チャンネル）一覧を取得
- * 各アーティストの最新動画のサムネイルも含める
+ * MongoDBキャッシュから取得（APIクォータ節約のため）
  */
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const cacheKey = `artists:${req.userId}`;
-    const cached = cache.get(cacheKey);
-    if (cached) {
-      return res.json(cached);
+    // MongoDBキャッシュから全チャンネルを取得
+    const cachedChannels = await CachedChannel.find({ userId: req.userId }).lean();
+
+    if (cachedChannels.length > 0) {
+      // キャッシュされたチャンネルをYouTube API形式に変換
+      const formattedChannels = cachedChannels.map(ch => ({
+        id: ch.subscriptionId || ch.channelId,
+        snippet: {
+          resourceId: {
+            channelId: ch.channelId
+          },
+          title: ch.channelTitle,
+          description: ch.channelDescription,
+          thumbnails: {
+            default: { url: ch.thumbnailUrl },
+            medium: { url: ch.thumbnailUrl },
+            high: { url: ch.thumbnailUrl }
+          }
+        },
+        latestVideoThumbnail: ch.latestVideoThumbnail,
+        latestVideoTitle: ch.latestVideoTitle,
+        latestVideoId: ch.latestVideoId,
+        latestVideoPublishedAt: ch.latestVideoPublishedAt
+      }));
+
+      console.log(`✅ Returning ${formattedChannels.length} artists from MongoDB cache`);
+      return res.json(formattedChannels);
     }
 
-    const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const result = await ytService.getSubscriptions();
-
-    // 各チャンネルの最新動画のサムネイルを取得
-    const enrichedSubscriptions = await Promise.all(
-      result.items.map(async (sub: any) => {
-        try {
-          const channelId = sub.snippet?.resourceId?.channelId;
-          if (channelId) {
-            const videos = await ytService.getChannelVideos(channelId, 1);
-            if (videos.length > 0) {
-              const latestVideo = videos[0];
-              return {
-                ...sub,
-                latestVideoThumbnail: latestVideo.snippet?.thumbnails?.high?.url ||
-                                     latestVideo.snippet?.thumbnails?.medium?.url ||
-                                     latestVideo.snippet?.thumbnails?.default?.url
-              };
-            }
-          }
-        } catch (error) {
-          console.error(`Failed to fetch latest video for artist ${sub.snippet?.title}:`, error);
-        }
-        return sub;
-      })
-    );
-
-    cache.set(cacheKey, enrichedSubscriptions, 10 * 60 * 1000); // 10分キャッシュ
-    res.json(enrichedSubscriptions);
+    // キャッシュがない場合は空配列を返す（APIクォータ超過時）
+    console.log('⚠️  No cached artists found in MongoDB');
+    res.json([]);
   } catch (error) {
+    console.error('Failed to fetch artists from cache:', error);
     res.status(500).json({ error: 'Failed to fetch artists' });
   }
 });
@@ -91,31 +90,50 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 /**
  * GET /api/artists/new-releases
  * 登録アーティストの最新動画を取得
+ * MongoDBキャッシュから最新動画情報を返す（APIクォータ節約）
  */
 router.get('/new-releases', async (req: AuthRequest, res: Response) => {
   try {
-    const cacheKey = `new-releases:${req.userId}`;
-    const cached = cache.get(cacheKey);
-    if (cached) {
-      return res.json(cached);
+    // MongoDBキャッシュから全チャンネルを取得し、最新動画IDでソート
+    const cachedChannels = await CachedChannel
+      .find({
+        userId: req.userId,
+        latestVideoId: { $exists: true, $ne: null }
+      })
+      .sort({ latestVideoPublishedAt: -1 })
+      .limit(20)
+      .lean();
+
+    if (cachedChannels.length > 0) {
+      // キャッシュから最新動画情報を構築
+      const newReleases = cachedChannels.map(ch => ({
+        id: {
+          videoId: ch.latestVideoId
+        },
+        videoId: ch.latestVideoId,
+        snippet: {
+          channelId: ch.channelId,
+          channelTitle: ch.channelTitle,
+          title: ch.latestVideoTitle,
+          thumbnails: {
+            default: { url: ch.latestVideoThumbnail },
+            medium: { url: ch.latestVideoThumbnail },
+            high: { url: ch.latestVideoThumbnail }
+          },
+          publishedAt: ch.latestVideoPublishedAt
+        },
+        title: ch.latestVideoTitle,
+        thumbnail: ch.latestVideoThumbnail
+      }));
+
+      console.log(`✅ Returning ${newReleases.length} new releases from MongoDB cache`);
+      return res.json(newReleases);
     }
 
-    const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const result = await ytService.getSubscriptions();
-    const allNewReleases = [];
-
-    // 各チャンネルの最新動画を取得（最大5件ずつ）
-    for (const sub of result.items) {
-      const channelId = sub.snippet?.resourceId?.channelId;
-      if (channelId) {
-        const videos = await ytService.getChannelVideos(channelId, 5);
-        allNewReleases.push(...videos);
-      }
-    }
-    
-    cache.set(cacheKey, allNewReleases, 5 * 60 * 1000); // 5分キャッシュ
-    res.json(allNewReleases);
+    console.log('⚠️  No new releases found in MongoDB cache');
+    res.json([]);
   } catch (error) {
+    console.error('Failed to fetch new releases from cache:', error);
     res.status(500).json({ error: 'Failed to fetch new releases' });
   }
 });

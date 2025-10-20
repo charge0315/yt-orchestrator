@@ -15,6 +15,7 @@ export interface ICachedChannel extends Document {
   videoCount?: number;
   latestVideoId?: string;
   latestVideoThumbnail?: string;
+  latestVideoTitle?: string;
   latestVideoPublishedAt?: Date; // 最新動画の公開日時（差分更新用）
   subscriptionId?: string; // YouTube subscription ID
   etag?: string; // ETag for conditional requests（差分更新用）
@@ -45,6 +46,7 @@ const CachedChannelSchema = new Schema<ICachedChannel>(
     videoCount: Number,
     latestVideoId: String,
     latestVideoThumbnail: String,
+    latestVideoTitle: String,
     latestVideoPublishedAt: Date,
     subscriptionId: String,
     etag: String,

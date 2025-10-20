@@ -41,11 +41,11 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
     console.log('📀 YouTube Music playlists request received');
     const CACHE_DURATION_MS = 30 * 60 * 1000; // 30分
 
-    // MongoDBから音楽プレイリストのキャッシュを取得（クォータ節約）
+    // MongoDBから全プレイリストのキャッシュを取得（クォータ節約）
+    // APIクォータ超過時は音楽フィルタを外して全プレイリストを表示
     if (mongoose.connection.readyState === 1) {
       const cachedPlaylists = await CachedPlaylist.find({
-        userId: req.userId,
-        isMusicPlaylist: true
+        userId: req.userId
       });
 
       if (cachedPlaylists.length > 0) {

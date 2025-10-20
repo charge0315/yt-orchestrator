@@ -7,11 +7,19 @@ import './VideoPlayer.css'
 
 interface VideoPlayerProps {
   videoId: string | null
+  playlistId?: string | null
   onClose: () => void
 }
 
-function VideoPlayer({ videoId, onClose }: VideoPlayerProps) {
+function VideoPlayer({ videoId, playlistId, onClose }: VideoPlayerProps) {
   const modalRef = useRef<HTMLDivElement>(null)
+
+  // プレイリストIDがある場合はプレイリスト形式のURLを生成
+  const embedUrl = playlistId
+    ? `https://www.youtube.com/embed/videoseries?list=${playlistId}&autoplay=1&rel=0`
+    : videoId
+    ? `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`
+    : ''
 
   // Escキーでモーダルを閉じる
   useEffect(() => {
@@ -21,7 +29,7 @@ function VideoPlayer({ videoId, onClose }: VideoPlayerProps) {
       }
     }
 
-    if (videoId) {
+    if (videoId || playlistId) {
       document.addEventListener('keydown', handleKeyDown)
       // スクロールを無効化
       document.body.style.overflow = 'hidden'
@@ -32,7 +40,7 @@ function VideoPlayer({ videoId, onClose }: VideoPlayerProps) {
       // スクロールを有効化
       document.body.style.overflow = 'auto'
     }
-  }, [videoId, onClose])
+  }, [videoId, playlistId, onClose])
 
   // モーダル外クリックで閉じる
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -41,7 +49,7 @@ function VideoPlayer({ videoId, onClose }: VideoPlayerProps) {
     }
   }
 
-  if (!videoId) return null
+  if (!videoId && !playlistId) return null
 
   return (
     <div
@@ -55,7 +63,7 @@ function VideoPlayer({ videoId, onClose }: VideoPlayerProps) {
         </button>
         <div className="video-player-container">
           <iframe
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+            src={embedUrl}
             title="YouTube video player"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"

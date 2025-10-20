@@ -74,7 +74,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
               }
             },
             latestVideoId: ch.latestVideoId,
-            latestVideoThumbnail: ch.latestVideoThumbnail
+            latestVideoThumbnail: ch.latestVideoThumbnail,
+            latestVideoTitle: ch.latestVideoTitle
           }));
 
           return res.json(formattedChannels);
@@ -129,6 +130,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                 latestVideoThumbnail: latestVideo.snippet?.thumbnails?.high?.url ||
                                      latestVideo.snippet?.thumbnails?.medium?.url ||
                                      latestVideo.snippet?.thumbnails?.default?.url,
+                latestVideoTitle: latestVideo.snippet?.title,
                 latestVideoPublishedAt: latestVideo.snippet?.publishedAt ? new Date(latestVideo.snippet.publishedAt) : undefined
               };
             } else {
@@ -148,6 +150,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                 },
                 latestVideoId: cached.latestVideoId,
                 latestVideoThumbnail: cached.latestVideoThumbnail,
+                latestVideoTitle: cached.latestVideoTitle,
                 latestVideoPublishedAt: cached.latestVideoPublishedAt
               };
             }
@@ -168,7 +171,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                 }
               },
               latestVideoId: cached.latestVideoId,
-              latestVideoThumbnail: cached.latestVideoThumbnail
+              latestVideoThumbnail: cached.latestVideoThumbnail,
+              latestVideoTitle: cached.latestVideoTitle
             };
           }
         })
@@ -192,6 +196,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                   latestVideoThumbnail: latestVideo.snippet?.thumbnails?.high?.url ||
                                        latestVideo.snippet?.thumbnails?.medium?.url ||
                                        latestVideo.snippet?.thumbnails?.default?.url,
+                  latestVideoTitle: latestVideo.snippet?.title,
                   latestVideoPublishedAt: latestVideo.snippet?.publishedAt ? new Date(latestVideo.snippet.publishedAt) : undefined
                 };
               }
@@ -221,6 +226,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                            sub.snippet?.thumbnails?.default?.url,
               latestVideoId: sub.latestVideoId,
               latestVideoThumbnail: sub.latestVideoThumbnail,
+              latestVideoTitle: sub.latestVideoTitle,
               latestVideoPublishedAt: sub.latestVideoPublishedAt, // 差分更新用の日時を保存
               subscriptionId: sub.id,
               cachedAt: new Date()

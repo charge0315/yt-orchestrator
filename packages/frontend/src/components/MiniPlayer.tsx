@@ -7,14 +7,20 @@ import './MiniPlayer.css'
 
 interface MiniPlayerProps {
   videoId: string | null
+  playlistId?: string | null
   videoTitle?: string
   onClose: () => void
 }
 
-function MiniPlayer({ videoId, videoTitle, onClose }: MiniPlayerProps) {
+function MiniPlayer({ videoId, playlistId, videoTitle, onClose }: MiniPlayerProps) {
   const [isMinimized, setIsMinimized] = useState(false)
 
-  if (!videoId) return null
+  if (!videoId && !playlistId) return null
+
+  // プレイリストIDがある場合はプレイリスト形式のURLを生成
+  const embedUrl = playlistId
+    ? `https://www.youtube.com/embed/videoseries?list=${playlistId}&autoplay=1&rel=0`
+    : `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`
 
   return (
     <div className={`mini-player ${isMinimized ? 'minimized' : ''}`}>
@@ -40,7 +46,7 @@ function MiniPlayer({ videoId, videoTitle, onClose }: MiniPlayerProps) {
       {!isMinimized && (
         <div className="mini-player-video">
           <iframe
-            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+            src={embedUrl}
             title="YouTube video player"
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
