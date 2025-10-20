@@ -39,11 +39,6 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     console.log(`Found ${cachedChannels.length} cached channels for user ${userId}`);
 
-    // 登録チャンネルがない場合は空配列を返す
-    if (cachedChannels.length === 0) {
-      return res.json([]);
-    }
-
     // 事前定義されたおすすめチャンネルリスト（YouTube APIクォータゼロで動作）
     // 人気の音楽系チャンネルから選定
     const predefinedRecommendations = [

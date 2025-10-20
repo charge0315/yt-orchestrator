@@ -329,4 +329,136 @@ router.delete('/:id/songs/:playlistItemId', async (req: AuthRequest, res: Respon
   }
 });
 
+/**
+ * GET /api/playlists/:id/export
+ * プレイリストをJSON形式でエクスポート
+ * プレイリスト情報と全ての動画情報を含む
+ */
+router.get('/:id/export', async (req: AuthRequest, res: Response) => {
+  try {
+    const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
+
+    // プレイリスト情報を取得
+    const playlist = await ytService.getPlaylist(req.params.id);
+    if (!playlist) {
+      return res.status(404).json({ error: 'Playlist not found' });
+    }
+
+    // プレイリストアイテム（動画）を取得
+    const itemsResult = await ytService.getPlaylistItems(req.params.id);
+    const items = itemsResult.items || [];
+
+    // エクスポート用のデータ構造を作成
+    const exportData = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      playlist: {
+        title: playlist.snippet?.title,
+        description: playlist.snippet?.description,
+        privacy: playlist.status?.privacyStatus || 'private'
+      },
+      items: items.map((item: any) => ({
+        videoId: item.snippet?.resourceId?.videoId,
+        title: item.snippet?.title,
+        description: item.snippet?.description,
+        channelTitle: item.snippet?.channelTitle,
+        channelId: item.snippet?.channelId,
+        thumbnail: item.snippet?.thumbnails?.high?.url ||
+                   item.snippet?.thumbnails?.medium?.url ||
+                   item.snippet?.thumbnails?.default?.url,
+        position: item.snippet?.position
+      }))
+    };
+
+    // ファイル名を生成（プレイリスト名をサニタイズ）
+    const sanitizedTitle = playlist.snippet?.title
+      ?.replace(/[^a-z0-9\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/gi, '_')
+      ?.substring(0, 50) || 'playlist';
+    const filename = `${sanitizedTitle}_${new Date().getTime()}.json`;
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.json(exportData);
+
+    console.log(`✅ Exported playlist "${playlist.snippet?.title}" (${exportData.items.length} items)`);
+  } catch (error) {
+    console.error('Error exporting playlist:', error);
+    res.status(500).json({ error: 'Failed to export playlist' });
+  }
+});
+
+/**
+ * POST /api/playlists/import
+ * JSON形式でプレイリストをインポート
+ * 新しいプレイリストを作成し、全ての動画を追加
+ */
+router.post('/import', async (req: AuthRequest, res: Response) => {
+  try {
+    const { playlist, items } = req.body;
+
+    if (!playlist || !playlist.title) {
+      return res.status(400).json({ error: 'Invalid import data: playlist title is required' });
+    }
+
+    const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
+
+    // 新しいプレイリストを作成
+    const newPlaylist = await ytService.createPlaylist(
+      playlist.title,
+      playlist.description || ''
+    );
+
+    if (!newPlaylist || !newPlaylist.id) {
+      return res.status(500).json({ error: 'Failed to create playlist' });
+    }
+
+    console.log(`✅ Created new playlist "${playlist.title}" (ID: ${newPlaylist.id})`);
+
+    // 動画を追加（順番を保持）
+    const sortedItems = Array.isArray(items)
+      ? [...items].sort((a, b) => (a.position || 0) - (b.position || 0))
+      : [];
+
+    let addedCount = 0;
+    let failedCount = 0;
+
+    for (const item of sortedItems) {
+      if (item.videoId) {
+        try {
+          await ytService.addToPlaylist(newPlaylist.id, item.videoId);
+          addedCount++;
+          console.log(`  ✓ Added: ${item.title}`);
+        } catch (error) {
+          failedCount++;
+          console.error(`  ✗ Failed to add: ${item.title}`, error);
+        }
+      }
+    }
+
+    // MongoDBキャッシュをクリア（次回取得時に再キャッシュ）
+    if (mongoose.connection.readyState === 1) {
+      try {
+        await CachedPlaylist.deleteMany({ userId: req.userId });
+        console.log('✅ Cleared MongoDB playlist cache after import');
+      } catch (dbError) {
+        console.error('Failed to clear playlist cache:', dbError);
+      }
+    }
+
+    console.log(`✅ Import completed: ${addedCount} added, ${failedCount} failed`);
+
+    res.status(201).json({
+      playlist: newPlaylist,
+      stats: {
+        total: sortedItems.length,
+        added: addedCount,
+        failed: failedCount
+      }
+    });
+  } catch (error) {
+    console.error('Error importing playlist:', error);
+    res.status(500).json({ error: 'Failed to import playlist' });
+  }
+});
+
 export default router;

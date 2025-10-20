@@ -101,7 +101,9 @@ export const playlistsApi = {
   addSong: (id: string, song: Song) =>
     apiClient.post<Playlist>(`/playlists/${id}/songs`, song),
   removeSong: (id: string, videoId: string) =>
-    apiClient.delete<Playlist>(`/playlists/${id}/songs/${videoId}`)
+    apiClient.delete<Playlist>(`/playlists/${id}/songs/${videoId}`),
+  export: (id: string) => apiClient.get(`/playlists/${id}/export`, { responseType: 'blob' }),
+  import: (data: any) => apiClient.post('/playlists/import', data)
 }
 
 /**

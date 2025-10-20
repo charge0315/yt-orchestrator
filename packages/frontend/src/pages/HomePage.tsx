@@ -208,12 +208,12 @@ function HomePage() {
         ) : latestVideos.length > 0 ? (
           <div className="items-scroll">
             {latestVideos.map((video: any, idx: number) => (
-              <div key={idx} style={{ minWidth: '150px', width: '150px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }} onClick={() => playVideo(video.videoId)}>
+              <div key={idx} style={{ minWidth: '210px', width: '210px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }} onClick={() => playVideo(video.videoId)}>
                 {video.thumbnail && (
                   <img src={video.thumbnail} alt={video.title} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover' }} />
                 )}
                 <div style={{ padding: '12px' }}>
-                  <h4 style={{ fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{video.title}</h4>
+                  <h4 style={{ fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{video.title}</h4>
                   <p style={{ fontSize: '12px', color: '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{video.channelName}</p>
                 </div>
               </div>
@@ -339,7 +339,7 @@ function HomePage() {
             {recommendations.map((rec: any, idx: number) => (
               <div
                 key={idx}
-                style={{ minWidth: '200px', width: '200px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '8px', overflow: 'hidden', cursor: 'pointer' }}
+                style={{ minWidth: '210px', width: '210px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }}
                 onClick={() => rec.videoId && playVideo(rec.videoId)}
               >
                 {/* サムネイル画像 */}
@@ -355,7 +355,7 @@ function HomePage() {
                   </div>
                 )}
                 <div style={{ padding: '12px' }}>
-                  <h4 style={{ fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <h4 style={{ fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {rec.title || rec.channelTitle}
                   </h4>
                   <p style={{ fontSize: '12px', color: '#888', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
