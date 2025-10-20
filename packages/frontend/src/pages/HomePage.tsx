@@ -218,6 +218,7 @@ function HomePage() {
    * 動画をプレイヤーで再生
    */
   const playVideo = (videoId: string) => {
+    console.log('▶️ Playing video:', videoId)
     setPlayingVideoId(videoId)
     setPlayingPlaylistId(null) // プレイリストをクリア
   }
@@ -226,6 +227,7 @@ function HomePage() {
    * プレイリストをプレイヤーで再生
    */
   const playPlaylist = (playlistId: string) => {
+    console.log('▶️ Playing playlist:', playlistId)
     setPlayingPlaylistId(playlistId)
     setPlayingVideoId(null) // 単一動画IDをクリア
   }
@@ -320,7 +322,13 @@ function HomePage() {
           </div>
           <div className="items-scroll">
             {sortItems(playlists, playlistSort).map((pl: any) => (
-              <div key={pl.id || pl._id} className="item-card" onClick={() => playPlaylist(pl.id)}>
+              <div key={pl.id || pl._id} className="item-card" onClick={() => {
+                if (pl.id) {
+                  playPlaylist(pl.id)
+                } else {
+                  console.error('❌ No id in playlist:', pl)
+                }
+              }}>
                 {pl.snippet?.thumbnails?.default?.url && (
                   <img src={pl.snippet.thumbnails.default.url} alt={pl.snippet.title || pl.name} />
                 )}
@@ -381,12 +389,18 @@ function HomePage() {
           </div>
           <div className="items-scroll">
             {sortItems(ytmPlaylists, ytmPlaylistSort).map((pl: any) => (
-              <div key={pl._id || pl.id} className="item-card" onClick={() => playPlaylist(pl.id)}>
-                {(pl.thumbnail || pl.songs?.[0]?.thumbnail) && (
-                  <img src={pl.thumbnail || pl.songs[0].thumbnail} alt={pl.name} />
+              <div key={pl._id || pl.id} className="item-card" onClick={() => {
+                if (pl.id) {
+                  playPlaylist(pl.id)
+                } else {
+                  console.error('❌ No id in YouTube Music playlist:', pl)
+                }
+              }}>
+                {(pl.snippet?.thumbnails?.default?.url || pl.thumbnail || pl.songs?.[0]?.thumbnail) && (
+                  <img src={pl.snippet?.thumbnails?.default?.url || pl.thumbnail || pl.songs?.[0]?.thumbnail} alt={pl.snippet?.title || pl.name} />
                 )}
                 <div className="card-content">
-                  <h4>{pl.name}</h4>
+                  <h4>{pl.snippet?.title || pl.name}</h4>
                   <p>プレイリスト</p>
                 </div>
               </div>
@@ -405,29 +419,34 @@ function HomePage() {
             {recommendations.map((rec: any, idx: number) => (
               <div
                 key={idx}
-                style={{ minWidth: '210px', width: '210px', flexShrink: 0, backgroundColor: '#2a2a2a', borderRadius: '12px', overflow: 'hidden', cursor: 'pointer' }}
-                onClick={() => rec.videoId && playVideo(rec.videoId)}
+                className="item-card"
+                onClick={() => {
+                  if (rec.videoId) {
+                    playVideo(rec.videoId)
+                  } else {
+                    console.error('❌ No videoId in recommendation:', rec)
+                  }
+                }}
               >
                 {/* サムネイル画像 */}
                 {rec.thumbnail ? (
                   <img
                     src={rec.thumbnail}
                     alt={rec.title}
-                    style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover' }}
                   />
                 ) : (
-                  <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: '#3a3a3a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px' }}>
+                  <div style={{ width: '100%', aspectRatio: '16/9', backgroundColor: '#3a3a3a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '48px' }}>
                     🤖
                   </div>
                 )}
-                <div style={{ padding: '12px' }}>
-                  <h4 style={{ fontSize: '14px', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                <div className="card-content">
+                  <h4>
                     {rec.title || rec.channelTitle}
                   </h4>
-                  <p style={{ fontSize: '12px', color: '#888', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p>
                     {rec.channelTitle}
                   </p>
-                  <p style={{ fontSize: '11px', color: '#4caf50', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  <p style={{ fontSize: '16px', color: '#4caf50', marginTop: '4px' }}>
                     🎯 {rec.reason}
                   </p>
                 </div>

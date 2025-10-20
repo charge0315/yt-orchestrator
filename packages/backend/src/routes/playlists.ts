@@ -42,7 +42,7 @@ router.delete('/cache', async (req: AuthRequest, res: Response) => {
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const { pageToken } = req.query;
-    const CACHE_DURATION_MS = 30 * 60 * 1000; // 30分
+    const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24時間（1日）
 
     // pageTokenがある場合はAPIから直接取得（ページネーション中）
     if (pageToken) {
@@ -68,9 +68,15 @@ router.get('/', async (req: AuthRequest, res: Response) => {
           current.cachedAt < oldest.cachedAt ? current : oldest
         );
         const cacheAge = Date.now() - oldestCache.cachedAt.getTime();
+        const cacheAgeHours = Math.round(cacheAge / 1000 / 60 / 60);
+        const cacheAgeMinutes = Math.round(cacheAge / 1000 / 60);
 
         if (cacheAge < CACHE_DURATION_MS) {
-          console.log(`✅ Returning ${cachedPlaylists.length} playlists from MongoDB cache (${Math.round(cacheAge / 1000 / 60)}min old)`);
+          const ageDisplay = cacheAgeHours >= 1
+            ? `${cacheAgeHours}h old`
+            : `${cacheAgeMinutes}min old`;
+
+          console.log(`✅ Returning ${cachedPlaylists.length} playlists from MongoDB cache (${ageDisplay})`);
 
           // YouTube API形式に変換して返す
           const formattedPlaylists = cachedPlaylists.map(pl => ({
@@ -100,7 +106,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
             nextPageToken: undefined
           });
         } else {
-          console.log('⚠️  MongoDB playlist cache is stale, fetching from YouTube API');
+          console.log('⚠️  MongoDB playlist cache is stale (>24h), fetching from YouTube API');
         }
       } else {
         console.log('⚠️  No playlists found in MongoDB cache, fetching from YouTube API');

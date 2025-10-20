@@ -83,7 +83,7 @@
 }
 
 .items-scroll .item-card {
-  min-width: 210px;
+  min-width: 520px;
   flex-shrink: 0;
 }
 
@@ -94,7 +94,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
-  width: 210px;
+  width: 520px;
   animation: fadeInUp 0.5s ease;
   display: flex;
   flex-direction: column;
@@ -142,11 +142,11 @@
 }
 
 .item-card .card-content {
-  padding: 12px 0;
+  padding: 16px 0;
 }
 
 .item-card h4 {
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 500;
   color: #ffffff;
   overflow: hidden;
@@ -154,12 +154,12 @@
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
-  line-height: 1.4;
-  margin: 0 0 4px 0;
+  line-height: 1.5;
+  margin: 0 0 8px 0;
 }
 
 .item-card p {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   color: #aaaaaa;
   overflow: hidden;
@@ -203,12 +203,20 @@
   }
 
   .item-card {
-    width: 160px;
-    min-width: 160px;
+    width: 380px;
+    min-width: 380px;
   }
 
   .items-scroll {
     gap: 12px;
+  }
+
+  .item-card h4 {
+    font-size: 16px;
+  }
+
+  .item-card p {
+    font-size: 18px;
   }
 }
 

@@ -39,7 +39,6 @@ router.get('/auth/status', authenticate, async (req: AuthRequest, res: Response)
 router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     console.log('📀 YouTube Music playlists request received');
-    const CACHE_DURATION_MS = 30 * 60 * 1000; // 30分
 
     // MongoDBから全プレイリストのキャッシュを取得（クォータ節約）
     // APIクォータ超過時は音楽フィルタを外して全プレイリストを表示
@@ -49,47 +48,50 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
       });
 
       if (cachedPlaylists.length > 0) {
-        // キャッシュの有効期限をチェック
+        // キャッシュの年齢を計算（情報表示用）
         const oldestCache = cachedPlaylists.reduce((oldest, current) =>
           current.cachedAt < oldest.cachedAt ? current : oldest
         );
         const cacheAge = Date.now() - oldestCache.cachedAt.getTime();
+        const cacheAgeMinutes = Math.round(cacheAge / 1000 / 60);
+        const cacheAgeHours = Math.round(cacheAge / 1000 / 60 / 60);
 
-        if (cacheAge < CACHE_DURATION_MS) {
-          console.log(`📀 Returning ${cachedPlaylists.length} music playlists from MongoDB cache (${Math.round(cacheAge / 1000 / 60)}min old)`);
+        const ageDisplay = cacheAgeHours >= 1
+          ? `${cacheAgeHours}h old`
+          : `${cacheAgeMinutes}min old`;
 
-          // YouTube API形式に変換して返す
-          const formattedPlaylists = cachedPlaylists.map(pl => ({
-            kind: 'youtube#playlist',
-            id: pl.playlistId,
-            snippet: {
-              title: pl.title,
-              description: pl.description,
-              thumbnails: {
-                default: { url: pl.thumbnailUrl },
-                medium: { url: pl.thumbnailUrl },
-                high: { url: pl.thumbnailUrl }
-              },
-              channelId: pl.channelId,
-              channelTitle: pl.channelTitle
+        console.log(`📀 Returning ${cachedPlaylists.length} music playlists from MongoDB cache (${ageDisplay})`);
+
+        // YouTube API形式に変換して返す
+        const formattedPlaylists = cachedPlaylists.map(pl => ({
+          kind: 'youtube#playlist',
+          id: pl.playlistId,
+          snippet: {
+            title: pl.title,
+            description: pl.description,
+            thumbnails: {
+              default: { url: pl.thumbnailUrl },
+              medium: { url: pl.thumbnailUrl },
+              high: { url: pl.thumbnailUrl }
             },
-            contentDetails: {
-              itemCount: pl.itemCount
-            },
-            status: {
-              privacyStatus: pl.privacy
-            }
-          }));
+            channelId: pl.channelId,
+            channelTitle: pl.channelTitle
+          },
+          contentDetails: {
+            itemCount: pl.itemCount
+          },
+          status: {
+            privacyStatus: pl.privacy
+          }
+        }));
 
-          return res.json({
-            items: formattedPlaylists,
-            nextPageToken: undefined
-          });
-        }
+        return res.json({
+          items: formattedPlaylists,
+          nextPageToken: undefined
+        });
       }
 
-      console.log('⚠️  MongoDB cache is stale or empty, returning empty for now');
-      // キャッシュが古い場合は空を返す（/api/playlistsが次回更新する）
+      console.log('⚠️  MongoDB playlist cache is empty');
       return res.json({ items: [], nextPageToken: undefined });
     }
 
