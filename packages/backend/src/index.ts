@@ -27,13 +27,13 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 迺ｰ蠅・､画焚縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ・・./backend/.env縺九ｉ隱ｭ縺ｿ霎ｼ繧・・dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// 迺ｰ蠅・､画焚縺ｮ隱ｭ縺ｿ霎ｼ縺ｿ・・./backend/.env縺九ｉ隱ｭ縺ｿ霎ｼ繧・・const ENV_PATH = path.resolve(__dirname, '../.env');\nconst envResult = dotenv.config({ path: ENV_PATH, override: true });\nif (envResult.error) {\n  console.error('dotenv load error:', envResult.error);\n} else {\n  console.log('dotenv loaded from:', ENV_PATH);\n}
 
 // 繝・ヰ繝・げ: 迺ｰ蠅・､画焚縺梧ｭ｣縺励￥隱ｭ縺ｿ霎ｼ縺ｾ繧後※縺・ｋ縺狗｢ｺ隱・
 console.log('Environment variables loaded:');
 console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set (' + process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...)' : 'Missing');
 console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Missing');
-console.log('.env path:', path.resolve(__dirname, '../.env'));
+console.log('.env path:', ENV_PATH);\nconsole.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -137,3 +137,4 @@ app.listen(PORT, async () => {
 
   startCacheUpdateJob();
 });
+
