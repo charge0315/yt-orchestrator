@@ -114,7 +114,8 @@ app.listen(PORT, async () => {
 
     await connectDatabase();
 
-  // MongoDB縺九ｉ譛牙柑縺ｪ繝ｦ繝ｼ繧ｶ繝ｼ繝医・繧ｯ繝ｳ繧偵・繝ｪ繝ｭ繝ｼ繝・  try {
+  // Preload valid user tokens
+  try {
     const { User } = await import('./models/User.js');
     const { registerUserToken } = await import('./jobs/updateCache.js');
     const now = new Date();
@@ -134,5 +135,5 @@ app.listen(PORT, async () => {
     console.warn('Skipping token preload:', e?.toString?.() || e);
   }
 
-  // 繝舌ャ繧ｯ繧ｰ繝ｩ繧ｦ繝ｳ繝峨ず繝ｧ繝夜幕蟋・  startCacheUpdateJob();
+  startCacheUpdateJob();
 });
