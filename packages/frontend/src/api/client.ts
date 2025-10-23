@@ -293,7 +293,8 @@ export const ytmusicApi = {
   saveCookie: (cookie: string) => apiClient.post('/ytmusic/auth/cookie', { cookie }),
   getAuthStatus: () => apiClient.get<{ connected: boolean }>('/ytmusic/auth/status'),
   disconnect: () => apiClient.post('/ytmusic/auth/disconnect'),
-  getPlaylists: () => apiClient.get<Playlist[]>('/ytmusic/playlists'),
+  // 初回は force=1 でAPI側を起動させ、以降はキャッシュが使われます
+  getPlaylists: () => apiClient.get<Playlist[]>('/ytmusic/playlists', { params: { force: 1 } }),
   getPlaylist: (id: string) => apiClient.get<Playlist>(`/ytmusic/playlists/${id}`),
   searchSongs: (query: string) => apiClient.get<Song[]>('/ytmusic/search', { params: { query } })
 }

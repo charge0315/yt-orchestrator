@@ -1,7 +1,7 @@
-/**
- * チャンネル管理ルート
- * YouTube Data API v3のチャンネル登録機能を使用
- * MongoDB優先でキャッシュを活用
+﻿/**
+ * 繝√Ε繝ｳ繝阪Ν邂｡逅・Ν繝ｼ繝・
+ * YouTube Data API v3縺ｮ繝√Ε繝ｳ繝阪Ν逋ｻ骭ｲ讖溯・繧剃ｽｿ逕ｨ
+ * MongoDB蜆ｪ蜈医〒繧ｭ繝｣繝・す繝･繧呈ｴｻ逕ｨ
  */
 import express, { Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
@@ -12,18 +12,18 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
-// すべてのルートで認証を必須にする
+// 縺吶∋縺ｦ縺ｮ繝ｫ繝ｼ繝医〒隱崎ｨｼ繧貞ｿ・医↓縺吶ｋ
 router.use(authenticate);
 
 /**
  * DELETE /api/channels/cache
- * MongoDBキャッシュをクリア（開発用）
+ * MongoDB繧ｭ繝｣繝・す繝･繧偵け繝ｪ繧｢・磯幕逋ｺ逕ｨ・・
  */
 router.delete('/cache', async (req: AuthRequest, res: Response) => {
   try {
     if (mongoose.connection.readyState === 1) {
       const result = await CachedChannel.deleteMany({ userId: req.userId });
-      console.log(`🗑️  Cleared ${result.deletedCount} channels from cache for user ${req.userId}`);
+      console.log(`卵・・ Cleared ${result.deletedCount} channels from cache for user ${req.userId}`);
       res.json({ message: `Cleared ${result.deletedCount} channels from cache` });
     } else {
       res.status(503).json({ error: 'MongoDB not connected' });
@@ -36,32 +36,57 @@ router.delete('/cache', async (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/channels
- * 登録中のチャンネル一覧を取得
- * MongoDB優先、APIをフォールバックとして使用
+ * 逋ｻ骭ｲ荳ｭ縺ｮ繝√Ε繝ｳ繝阪Ν荳隕ｧ繧貞叙蠕・
+ * MongoDB蜆ｪ蜈医、PI繧偵ヵ繧ｩ繝ｼ繝ｫ繝舌ャ繧ｯ縺ｨ縺励※菴ｿ逕ｨ
  */
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const CACHE_DURATION_MS = 30 * 60 * 1000; // 30分
+    const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24時間
     let shouldRefreshFromAPI = false;
     let cachedChannels: any[] = [];
 
-    // 1. MongoDBからキャッシュを取得
+    // 1. MongoDB縺九ｉ繧ｭ繝｣繝・す繝･繧貞叙蠕・
     if (mongoose.connection.readyState === 1) {
-      // アーティスト以外（通常チャンネル）のみ
+      // 繧｢繝ｼ繝・ぅ繧ｹ繝井ｻ･螟厄ｼ磯壼ｸｸ繝√Ε繝ｳ繝阪Ν・峨・縺ｿ
       cachedChannels = await CachedChannel.find({ userId: req.userId, isArtist: false });
 
       if (cachedChannels.length > 0) {
-        // キャッシュの有効期限をチェック
+        // 繧ｭ繝｣繝・す繝･縺ｮ譛牙柑譛滄剞繧偵メ繧ｧ繝・け
         const oldestCache = cachedChannels.reduce((oldest, current) =>
           current.cachedAt < oldest.cachedAt ? current : oldest
         );
         const cacheAge = Date.now() - oldestCache.cachedAt.getTime();
 
         if (cacheAge < CACHE_DURATION_MS) {
-          console.log(`✅ Returning ${cachedChannels.length} channels from MongoDB cache (${Math.round(cacheAge / 1000 / 60)}min old)`);
+          console.log(`笨・Returning ${cachedChannels.length} channels from MongoDB cache (${Math.round(cacheAge / 1000 / 60)}min old)`);
 
-          // YouTube API形式に変換して返す
-          const formattedChannels = cachedChannels.map(ch => ({
+          // 譛譁ｰ蜍慕判諠・ｱ縺梧ｬ關ｽ縺励※縺・ｋ繧ｨ繝ｳ繝医Μ縺ｮ縺ｿ霆ｽ驥上↓陬懷ｮ・          let ytForEnrich: YouTubeApiService | undefined;
+          const enriched = await Promise.all(
+            cachedChannels.map(async (ch) => {
+              if (ch.latestVideoId && ch.latestVideoTitle && ch.latestVideoThumbnail) {
+                return ch;
+              }
+              try {
+                if (!ytForEnrich) {
+                  ytForEnrich = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
+                }
+                const vids = await ytForEnrich.getChannelVideos(ch.channelId, 1);
+                const latest = vids?.[0];
+                if (latest) {
+                  ch.latestVideoId = latest.id?.videoId || (latest as any).id;
+                  ch.latestVideoTitle = latest.snippet?.title;
+                  ch.latestVideoThumbnail = latest.snippet?.thumbnails?.high?.url || latest.snippet?.thumbnails?.medium?.url || latest.snippet?.thumbnails?.default?.url;
+                  ch.latestVideoPublishedAt = latest.snippet?.publishedAt ? new Date(latest.snippet.publishedAt) : ch.latestVideoPublishedAt;
+                  ch.cachedAt = new Date();
+                  try { await ch.save(); } catch {}
+                }
+              } catch {}
+              return ch;
+            })
+          );
+
+          // YouTube API蠖｢蠑上↓螟画鋤縺励※霑斐☆
+          const formattedChannels = enriched.map(ch => ({
             kind: 'youtube#subscription',
             id: ch.subscriptionId,
             snippet: {
@@ -81,35 +106,35 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
           return res.json(formattedChannels);
         } else {
-          console.log('⚠️  MongoDB cache is stale, fetching from YouTube API');
+          console.log('笞・・ MongoDB cache is stale, fetching from YouTube API');
           shouldRefreshFromAPI = true;
         }
       } else {
-        console.log('⚠️  No channels found in MongoDB cache, fetching from YouTube API');
+        console.log('笞・・ No channels found in MongoDB cache, fetching from YouTube API');
         shouldRefreshFromAPI = true;
       }
     } else {
-      console.log('⚠️  MongoDB not connected, using YouTube API directly');
+      console.log('笞・・ MongoDB not connected, using YouTube API directly');
       shouldRefreshFromAPI = true;
     }
 
-    // 2. YouTube APIから差分取得
+    // 2. YouTube API縺九ｉ蟾ｮ蛻・叙蠕・
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
 
-    // キャッシュがある場合は差分更新、ない場合は全取得
+    // 繧ｭ繝｣繝・す繝･縺後≠繧句ｴ蜷医・蟾ｮ蛻・峩譁ｰ縲√↑縺・ｴ蜷医・蜈ｨ蜿門ｾ・
     let enrichedSubscriptions: any[] = [];
 
     if (mongoose.connection.readyState === 1 && cachedChannels && cachedChannels.length > 0) {
-      // 差分更新モード：キャッシュされたチャンネルの新しい動画のみチェック
-      console.log('🔄 Using incremental update mode for channels');
+      // 蟾ｮ蛻・峩譁ｰ繝｢繝ｼ繝会ｼ壹く繝｣繝・す繝･縺輔ｌ縺溘メ繝｣繝ｳ繝阪Ν縺ｮ譁ｰ縺励＞蜍慕判縺ｮ縺ｿ繝√ぉ繝・け
+      console.log('売 Using incremental update mode for channels');
 
       enrichedSubscriptions = await Promise.all(
         cachedChannels.map(async (cached) => {
           try {
             const channelId = cached.channelId;
-            const lastPublishedAt = cached.latestVideoPublishedAt || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // デフォルト7日前
+            const lastPublishedAt = cached.latestVideoPublishedAt || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); // 繝・ヵ繧ｩ繝ｫ繝・譌･蜑・
 
-            // 差分取得：最終チェック日時以降の動画のみ
+            // 蟾ｮ蛻・叙蠕暦ｼ壽怙邨ゅメ繧ｧ繝・け譌･譎ゆｻ･髯阪・蜍慕判縺ｮ縺ｿ
             const newVideos = await ytService.getChannelVideosIncremental(channelId, lastPublishedAt, 5);
 
             if (newVideos.length > 0) {
@@ -135,7 +160,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
                 latestVideoPublishedAt: latestVideo.snippet?.publishedAt ? new Date(latestVideo.snippet.publishedAt) : undefined
               };
             } else {
-              // 新しい動画がない場合はキャッシュをそのまま返す
+              // 譁ｰ縺励＞蜍慕判縺後↑縺・ｴ蜷医・繧ｭ繝｣繝・す繝･繧偵◎縺ｮ縺ｾ縺ｾ霑斐☆
               return {
                 kind: 'youtube#subscription',
                 id: cached.subscriptionId,
@@ -157,7 +182,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
             }
           } catch (error) {
             console.error(`Failed to fetch incremental update for channel ${cached.channelTitle}:`, error);
-            // エラー時はキャッシュをそのまま返す
+            // 繧ｨ繝ｩ繝ｼ譎ゅ・繧ｭ繝｣繝・す繝･繧偵◎縺ｮ縺ｾ縺ｾ霑斐☆
             return {
               kind: 'youtube#subscription',
               id: cached.subscriptionId,
@@ -179,8 +204,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         })
       );
     } else {
-      // 全取得モード：初回または キャッシュなし
-      console.log('📥 Using full fetch mode for channels');
+      // 蜈ｨ蜿門ｾ励Δ繝ｼ繝会ｼ壼・蝗槭∪縺溘・ 繧ｭ繝｣繝・す繝･縺ｪ縺・
+      console.log('踏 Using full fetch mode for channels');
       const result = await ytService.getSubscriptions();
 
       enrichedSubscriptions = await Promise.all(
@@ -210,60 +235,61 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       );
     }
 
-    // 3. MongoDBにキャッシュを保存
-    if (mongoose.connection.readyState === 1) {
-      try {
-        // isArtist を高精度に算出してから保存
-        const extended = await Promise.all(
-          enrichedSubscriptions.map(async (sub: any) => {
-            const chId = sub.snippet?.resourceId?.channelId as string | undefined;
-            const title: string = (sub.snippet?.title || '').toLowerCase();
-            let isArtist = !!(title.includes('- topic') || (chId && YouTubeApiService.isYouTubeMusicChannel(chId)));
-            if (!isArtist && chId) {
-              try {
-                const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-                isArtist = await ytService.isMusicChannelAsync(chId, 5);
-              } catch {}
-            }
-            return { sub, isArtist };
-          })
-        );
-
-        const bulkOps = extended.map(({ sub, isArtist }) => ({
-          updateOne: {
-            filter: {
-              userId: req.userId,
-              channelId: sub.snippet?.resourceId?.channelId
-            },
-            update: {
-              channelTitle: sub.snippet?.title,
-              channelDescription: sub.snippet?.description,
-              thumbnailUrl: sub.snippet?.thumbnails?.high?.url ||
-                           sub.snippet?.thumbnails?.medium?.url ||
-                           sub.snippet?.thumbnails?.default?.url,
-              latestVideoId: sub.latestVideoId,
-              latestVideoThumbnail: sub.latestVideoThumbnail,
-              latestVideoTitle: sub.latestVideoTitle,
-              latestVideoPublishedAt: sub.latestVideoPublishedAt,
-              subscriptionId: sub.id,
-              isArtist,
-              cachedAt: new Date()
-            },
-            upsert: true
-          }
-        }));
-
-        await CachedChannel.bulkWrite(bulkOps);
-        console.log(`✅ Saved ${enrichedSubscriptions.length} channels to MongoDB cache (with incremental update metadata)`);
-      } catch (dbError) {
-        console.error('Failed to save channels to MongoDB:', dbError);
-      }
-    }
-
-    // 4. レスポンスはアーティスト以外に限定
-    // レスポンスはアーティスト以外に限定（高精度判定）
+    // 3. MongoDB cache save
+if (mongoose.connection.readyState === 1) {
+  try {
+    const extended: any[] = [];
+for (const sub of enrichedSubscriptions as any[]) {
+  const chId = sub.snippet?.resourceId?.channelId as string | undefined;
+  const title: string = (sub.snippet?.title || '').toLowerCase();
+  let isArtist = !!(title.includes('- topic') || (chId && YouTubeApiService.isYouTubeMusicChannel(chId)));
+  if (!isArtist && chId) {
     try {
-      const marked = await Promise.all(
+      const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
+      isArtist = await ytService.isMusicChannelAsync(chId, 5);
+    } catch {}
+  }
+  extended.push({ sub, isArtist });
+}
+const bulkOps = extended.map(({ sub, isArtist }) => ({
+      updateOne: {
+        filter: {
+          userId: req.userId,
+          channelId: sub.snippet?.resourceId?.channelId
+        },
+        update: {
+          $set: {
+            channelTitle: sub.snippet?.title,
+            channelDescription: sub.snippet?.description,
+            thumbnailUrl: sub.snippet?.thumbnails?.high?.url ||
+                         sub.snippet?.thumbnails?.medium?.url ||
+                         sub.snippet?.thumbnails?.default?.url,
+            latestVideoId: sub.latestVideoId,
+            latestVideoThumbnail: sub.latestVideoThumbnail,
+            latestVideoTitle: sub.latestVideoTitle,
+            latestVideoPublishedAt: sub.latestVideoPublishedAt,
+            subscriptionId: sub.id,
+            isArtist: isArtist,
+            cachedAt: new Date()
+          },
+          $setOnInsert: {
+            userId: req.userId,
+            channelId: sub.snippet?.resourceId?.channelId
+          }
+        },
+        upsert: true
+      }
+    }));
+
+    await CachedChannel.bulkWrite(bulkOps);
+    console.log(`✅ Saved ${enrichedSubscriptions.length} channels to MongoDB cache (with incremental update metadata)`);
+  } catch (dbError) {
+    console.error('Failed to save channels to MongoDB:', dbError);
+  }
+}
+    // 4. レスポンスはアーティスト以外に限定
+    try {
+const marked = await Promise.all(
         enrichedSubscriptions.map(async (sub: any) => {
           const chId = sub.snippet?.resourceId?.channelId as string | undefined;
           const title: string = (sub.snippet?.title || '').toLowerCase();
@@ -279,7 +305,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       );
       res.json(marked.filter(m => !m.isArtist).map(m => m.sub));
     } catch {
-      // フォールバックとして従来の配列を返す
+      // 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ縺ｨ縺励※蠕捺擂縺ｮ驟榊・繧定ｿ斐☆
       res.json(enrichedSubscriptions);
     }
   } catch (error) {
@@ -290,7 +316,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 /**
  * POST /api/channels
- * チャンネルを登録
+ * 繝√Ε繝ｳ繝阪Ν繧堤匳骭ｲ
  */
 router.post('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -298,11 +324,11 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
     const subscription = await ytService.subscribe(channelId);
 
-    // MongoDBのキャッシュをクリア（次回取得時に再キャッシュ）
+    // MongoDB縺ｮ繧ｭ繝｣繝・す繝･繧偵け繝ｪ繧｢・域ｬ｡蝗槫叙蠕玲凾縺ｫ蜀阪く繝｣繝・す繝･・・
     if (mongoose.connection.readyState === 1) {
       try {
         await CachedChannel.deleteMany({ userId: req.userId });
-        console.log('✅ Cleared MongoDB channel cache after subscription');
+        console.log('笨・Cleared MongoDB channel cache after subscription');
       } catch (dbError) {
         console.error('Failed to clear channel cache:', dbError);
       }
@@ -317,21 +343,21 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
 /**
  * DELETE /api/channels/:id
- * チャンネルの登録を解除
+ * 繝√Ε繝ｳ繝阪Ν縺ｮ逋ｻ骭ｲ繧定ｧ｣髯､
  */
 router.delete('/:id', async (req: AuthRequest, res: Response) => {
   try {
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
     await ytService.unsubscribe(req.params.id);
 
-    // MongoDBから該当チャンネルを削除
+    // MongoDB縺九ｉ隧ｲ蠖薙メ繝｣繝ｳ繝阪Ν繧貞炎髯､
     if (mongoose.connection.readyState === 1) {
       try {
         await CachedChannel.deleteOne({
           userId: req.userId,
           subscriptionId: req.params.id
         });
-        console.log('✅ Removed channel from MongoDB cache');
+        console.log('笨・Removed channel from MongoDB cache');
       } catch (dbError) {
         console.error('Failed to remove channel from cache:', dbError);
       }
