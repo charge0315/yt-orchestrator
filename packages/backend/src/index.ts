@@ -107,7 +107,8 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'YouTube Orchestrator API is running' });
 });
 
-// 繧ｵ繝ｼ繝舌・襍ｷ蜍・app.listen(PORT, async () => {
+// サーバー起動
+app.listen(PORT, async () => {
   console.log(`噫 Server is running on http://localhost:${PORT}`);
   console.log(`笨・Session-based authentication enabled`);
 
