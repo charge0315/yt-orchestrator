@@ -55,7 +55,8 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
       });
 
       if (cachedPlaylists.length > 0) {
-        // 繧ｭ繝｣繝・す繝･縺ｮ蟷ｴ鮨｢繧定ｨ育ｮ暦ｼ域ュ蝣ｱ陦ｨ遉ｺ逕ｨ・・        const oldestCache = cachedPlaylists.reduce((oldest, current) =>
+        // キャッシュの年齢を計算（情報表示用）
+        const oldestCache = cachedPlaylists.reduce((oldest, current) =>
           current.cachedAt < oldest.cachedAt ? current : oldest
         );
         const cacheAge = Date.now() - oldestCache.cachedAt.getTime();
@@ -178,3 +179,5 @@ router.get('/search', authenticate, async (req: AuthRequest, res: Response) => {
 });
 
 export default router;
+
+
