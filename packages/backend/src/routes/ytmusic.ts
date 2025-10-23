@@ -17,7 +17,7 @@ router.get('/auth/status', authenticate, async (req: AuthRequest, res: Response)
     // YouTube Data API v3繧剃ｽｿ逕ｨ縺励※縺・ｋ縺溘ａ縲・    // Google OAuth縺悟ｮ御ｺ・＠縺ｦ縺・ｌ縺ｰ閾ｪ蜍慕噪縺ｫ謗･邯壽ｸ医∩
     res.json({
       connected: true,
-      message: 'YouTube Data API v3繧剃ｽｿ逕ｨ縺励※縺・∪縺・
+      message: 'YouTube Data API v3 を使用しているため、常に接続済みです'
     });
   } catch (error) {
     console.error('Error checking YouTube Music status:', error);
