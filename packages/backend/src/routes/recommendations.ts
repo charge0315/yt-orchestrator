@@ -134,6 +134,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       .filter((rec) => !subscribedChannelIds.has(rec.channelId))
       .slice(0, 5)
       .map((rec) => ({
+        channelId: rec.channelId,
         videoId: rec.videoId,
         title: rec.title,
         channelTitle: rec.name,

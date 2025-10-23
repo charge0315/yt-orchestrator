@@ -449,6 +449,28 @@ function HomePage() {
                   <p style={{ fontSize: '16px', color: '#4caf50', marginTop: '4px' }}>
                     🎯 {rec.reason}
                   </p>
+                  {rec.channelId && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        artistsApi.subscribe({ channelId: rec.channelId })
+                          .then(() => alert('チャンネルを登録しました'))
+                          .catch((err) => console.error('Subscribe failed:', err))
+                      }}
+                      style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
+                        backgroundColor: '#ff0000',
+                        color: '#fff',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        width: '100%'
+                      }}
+                    >
+                      登録する
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

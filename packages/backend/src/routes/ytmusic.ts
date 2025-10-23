@@ -43,8 +43,10 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
     // MongoDBから全プレイリストのキャッシュを取得（クォータ節約）
     // APIクォータ超過時は音楽フィルタを外して全プレイリストを表示
     if (mongoose.connection.readyState === 1) {
+      // 音楽プレイリストのみを返す
       const cachedPlaylists = await CachedPlaylist.find({
-        userId: req.userId
+        userId: req.userId,
+        isMusicPlaylist: true
       });
 
       if (cachedPlaylists.length > 0) {
@@ -60,7 +62,7 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
           ? `${cacheAgeHours}h old`
           : `${cacheAgeMinutes}min old`;
 
-        console.log(`📀 Returning ${cachedPlaylists.length} music playlists from MongoDB cache (${ageDisplay})`);
+        console.log(`📀 Returning ${cachedPlaylists.length} YouTube Music playlists from MongoDB cache (${ageDisplay})`);
 
         // YouTube API形式に変換して返す
         const formattedPlaylists = cachedPlaylists.map(pl => ({
@@ -91,12 +93,12 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
         });
       }
 
-      console.log('⚠️  MongoDB playlist cache is empty');
+      console.log('⚠️  MongoDB music playlist cache is empty');
       return res.json({ items: [], nextPageToken: undefined });
     }
 
     // MongoDBが利用できない場合
-    console.log('⚠️  MongoDB not connected, returning empty');
+    console.log('⚠️  MongoDB not connected, returning empty for music playlists');
     res.json({ items: [], nextPageToken: undefined });
   } catch (error: any) {
     console.error('❌ Error fetching YouTube Music playlists:', error);

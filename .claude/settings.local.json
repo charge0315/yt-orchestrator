@@ -38,7 +38,12 @@
       "Bash(powershell -Command \"Stop-Process -Id 4320 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 24840 -Force\")",
       "Bash(powershell -Command \"Stop-Process -Id 27688 -Force\")",
-      "Bash(powershell -Command \"Stop-Process -Id 10492 -Force\")"
+      "Bash(powershell -Command \"Stop-Process -Id 10492 -Force\")",
+      "Bash(powershell -Command \"Stop-Process -Id 32644 -Force\")",
+      "Bash(powershell -Command \"Get-Process -Id 32644 -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(npx tsx src/scripts/checkCache.ts)",
+      "Bash(npx tsx src/scripts/fixCachedTitles.ts)",
+      "Bash(npx tsx src/scripts/checkPlaylists.ts)"
     ],
     "deny": [],
     "ask": []

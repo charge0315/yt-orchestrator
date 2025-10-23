@@ -194,6 +194,8 @@ function ChannelsPage() {
                                latestVideo?.snippet?.thumbnails?.medium?.url ||
                                latestVideo?.snippet?.thumbnails?.default?.url ||
                                channel.snippet?.thumbnails?.default?.url
+              // 最新動画タイトルの表示（バックエンド提供があれば優先）
+              const latestTitle = channel.latestVideoTitle || latestVideo?.snippet?.title
               return (
                 <div key={channel.id} className="channel-card">
                   {thumbnail && (
@@ -212,6 +214,11 @@ function ChannelsPage() {
                   )}
                   <div className="channel-info">
                     <h3>{channel.snippet?.title}</h3>
+                    {latestTitle && (
+                      <p style={{ color: '#aaa', marginTop: '6px', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {latestTitle}
+                      </p>
+                    )}
                     <button
                       onClick={() => handleUnsubscribe(channel.id)}
                       style={{
