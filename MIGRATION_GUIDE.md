@@ -85,3 +85,29 @@ Google OAuth時にYouTubeアクセストークンを取得し、バックエン�
 1. **API制限**: YouTube Data API v3のクォータ制限に注意
 2. **認証必須**: すべての操作にYouTubeアクセストークンが必要
 3. **データ移行**: 既存のMongoDBデータは手動で移行が必要
+
+---
+
+## vNext: トークン管理と認証フラグの拡張
+
+本バージョンではバックエンドのトークン管理と認証状態の通知仕様を拡張しました。
+
+### 変更点（互換性）
+
+- Userモデルに以下のフィールドを追加
+  - `reauthRequired: boolean`（既定 false）
+  - `reauthReason: string | undefined`（理由コード: `invalid_token`, `expired`, `missing` など）
+
+- `/api/auth/me` のレスポンス拡張
+  - 追加フィールド: `reauthRequired`, `reauthReason`, `reauthMessage`
+  - 既存クライアントは無視可能。再ログイン案内を行う場合はこれらの値を参照してください。
+
+### ランタイム挙動
+
+- バックグラウンドジョブ実行時にアクセストークンが期限切れの場合、自動的にリフレッシュを試行します。
+- `invalid_grant`（リフレッシュ不可）を検出した場合は、メモリとDBからトークンを削除し、`reauthRequired=true` と `reauthReason='invalid_token'` を設定します。
+- サーバー起動時にDBから有効なトークンをプリロードします。
+
+### 環境変数
+
+- キャッシュ更新のスケジュールを `CACHE_UPDATE_SCHEDULE`（cron）で上書き可能です。指定がない場合は30分毎で実行します。
