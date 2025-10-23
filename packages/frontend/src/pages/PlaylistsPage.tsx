@@ -90,6 +90,7 @@ function PlaylistsPage() {
           />
         </div>
       </div>
+      <p className="page-subtitle" style={{ color: '#aaa', marginTop: '8px' }}>アルバム（YouTube Music のプレイリスト）</p>
       {importStatus && (
         <div className="import-status">{importStatus}</div>
       )}
@@ -128,6 +129,23 @@ function PlaylistsPage() {
               >
                 エクスポート
               </button>
+              {playlist.snippet?.channelId && (
+                <button
+                  className="export-button"
+                  onClick={async (e) => {
+                    e.preventDefault()
+                    try {
+                      await artistsApi.subscribe({ channelId: playlist.snippet!.channelId! })
+                      alert('チャンネルを登録しました')
+                    } catch (err) {
+                      console.error('Subscribe failed:', err)
+                      alert('登録に失敗しました')
+                    }
+                  }}
+                >
+                  チャンネルを登録
+                </button>
+              )}
             </div>
           )
         })}
