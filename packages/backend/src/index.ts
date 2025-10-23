@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
 
-// 繝・・繧ｿ繝吶・繧ｹ縺ｨ繧ｸ繝ｧ繝悶・繧､繝ｳ繝昴・繝・import { connectDatabase } from './config/database.js';
+import { connectDatabase } from './config/database.js';
 import { startCacheUpdateJob } from './jobs/updateCache.js';
 
 // 繝ｫ繝ｼ繝医・繧､繝ｳ繝昴・繝・
