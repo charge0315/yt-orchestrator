@@ -16,6 +16,11 @@ export async function connectDatabase() {
     }
 
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/yt-orchestrator';
+    console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
+    try {
+      const parsed = new URL(mongoUri.replace('mongodb+srv', 'http').replace('mongodb', 'http'));
+      console.log('MongoDB target host:', parsed.host);
+    } catch {}
     await mongoose.connect(mongoUri);
     console.log('MongoDB connected successfully');
   } catch (error) {
