@@ -130,6 +130,71 @@ export class YouTubeApiService {
   }
 
   /**
+   * チャンネルが音楽系かどうかを判定（非同期・精度高）
+   * 直近の動画のカテゴリID=10（Music）の割合や「- Topic」を確認
+   * 結果はメモリキャッシュに保存
+   */
+  async isMusicChannelAsync(channelId: string, maxSamples = 5): Promise<boolean> {
+    const cacheKey = `channel_music_check:${channelId}:${maxSamples}`;
+    const cached = this.getFromCache(cacheKey);
+    if (cached !== undefined) return cached;
+
+    // 既知の公式チャンネルは即true
+    if (YouTubeApiService.isYouTubeMusicChannel(channelId)) {
+      this.setCache(cacheKey, true);
+      return true;
+    }
+
+    try {
+      // 直近の動画を取得
+      const items = await this.getChannelVideos(channelId, maxSamples);
+      if (!items || items.length === 0) {
+        this.setCache(cacheKey, false);
+        return false;
+      }
+
+      // 「- Topic」を含むチャンネル名があればtrue
+      const hasTopic = items.some((v: any) =>
+        (v.snippet?.channelTitle || '').toLowerCase().includes('- topic')
+      );
+      if (hasTopic) {
+        this.setCache(cacheKey, true);
+        return true;
+      }
+
+      const videoIds = items
+        .map((v: any) => (typeof v.id === 'string' ? v.id : v.id?.videoId))
+        .filter((id: any): id is string => !!id);
+
+      if (videoIds.length === 0) {
+        this.setCache(cacheKey, false);
+        return false;
+      }
+
+      const videosResp = await this.youtube.videos.list({
+        part: ['snippet'],
+        id: videoIds,
+        fields: 'items(snippet/categoryId)'
+      });
+
+      const videos = videosResp.data.items || [];
+      if (videos.length === 0) {
+        this.setCache(cacheKey, false);
+        return false;
+      }
+
+      const musicCount = videos.filter((vid) => vid.snippet?.categoryId === '10').length;
+      const isMusic = musicCount / videos.length >= 0.5;
+      this.setCache(cacheKey, isMusic);
+      return isMusic;
+    } catch (e) {
+      // 失敗時はfalseでフォールバック
+      this.setCache(cacheKey, false);
+      return false;
+    }
+  }
+
+  /**
    * プレイリストが音楽系かどうかを判定（スコアリング方式）
    * タイトルや説明に音楽関連キーワードが含まれるかチェック
    * 注: この判定は同期的で軽量ですが、完全には正確ではありません

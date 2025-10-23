@@ -47,7 +47,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     // 1. MongoDBからキャッシュを取得
     if (mongoose.connection.readyState === 1) {
-      cachedChannels = await CachedChannel.find({ userId: req.userId });
+      // アーティスト以外（通常チャンネル）のみ
+      cachedChannels = await CachedChannel.find({ userId: req.userId, isArtist: false });
 
       if (cachedChannels.length > 0) {
         // キャッシュの有効期限をチェック
@@ -212,7 +213,23 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     // 3. MongoDBにキャッシュを保存
     if (mongoose.connection.readyState === 1) {
       try {
-        const bulkOps = enrichedSubscriptions.map((sub: any) => ({
+        // isArtist を高精度に算出してから保存
+        const extended = await Promise.all(
+          enrichedSubscriptions.map(async (sub: any) => {
+            const chId = sub.snippet?.resourceId?.channelId as string | undefined;
+            const title: string = (sub.snippet?.title || '').toLowerCase();
+            let isArtist = !!(title.includes('- topic') || (chId && YouTubeApiService.isYouTubeMusicChannel(chId)));
+            if (!isArtist && chId) {
+              try {
+                const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
+                isArtist = await ytService.isMusicChannelAsync(chId, 5);
+              } catch {}
+            }
+            return { sub, isArtist };
+          })
+        );
+
+        const bulkOps = extended.map(({ sub, isArtist }) => ({
           updateOne: {
             filter: {
               userId: req.userId,
@@ -227,8 +244,9 @@ router.get('/', async (req: AuthRequest, res: Response) => {
               latestVideoId: sub.latestVideoId,
               latestVideoThumbnail: sub.latestVideoThumbnail,
               latestVideoTitle: sub.latestVideoTitle,
-              latestVideoPublishedAt: sub.latestVideoPublishedAt, // 差分更新用の日時を保存
+              latestVideoPublishedAt: sub.latestVideoPublishedAt,
               subscriptionId: sub.id,
+              isArtist,
               cachedAt: new Date()
             },
             upsert: true
@@ -242,7 +260,28 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       }
     }
 
-    res.json(enrichedSubscriptions);
+    // 4. レスポンスはアーティスト以外に限定
+    // レスポンスはアーティスト以外に限定（高精度判定）
+    try {
+      const marked = await Promise.all(
+        enrichedSubscriptions.map(async (sub: any) => {
+          const chId = sub.snippet?.resourceId?.channelId as string | undefined;
+          const title: string = (sub.snippet?.title || '').toLowerCase();
+          let isArtist = !!(title.includes('- topic') || (chId && YouTubeApiService.isYouTubeMusicChannel(chId)));
+          if (!isArtist && chId) {
+            try {
+              const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
+              isArtist = await ytService.isMusicChannelAsync(chId, 5);
+            } catch {}
+          }
+          return { sub, isArtist };
+        })
+      );
+      res.json(marked.filter(m => !m.isArtist).map(m => m.sub));
+    } catch {
+      // フォールバックとして従来の配列を返す
+      res.json(enrichedSubscriptions);
+    }
   } catch (error) {
     console.error('Error fetching channels:', error);
     res.status(500).json({ error: 'Failed to fetch channels' });

@@ -42,17 +42,23 @@ router.delete('/cache', async (req: AuthRequest, res: Response) => {
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const { pageToken } = req.query;
+    const type = (req.query.type as string | undefined)?.toLowerCase() as 'video' | 'music' | 'all' | undefined;
+    const desiredType: 'video' | 'music' | 'all' = type === 'music' || type === 'all' ? type : 'video';
     const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24時間（1日）
 
     // pageTokenがある場合はAPIから直接取得（ページネーション中）
     if (pageToken) {
       const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
       const result = await ytService.getPlaylists(pageToken as string);
-      const videoPlaylists = result.items.filter((playlist: any) =>
-        !ytService.isMusicPlaylist(playlist)
-      );
+      const classified = result.items.map((playlist: any) => ({
+        ...playlist,
+        isMusicPlaylist: ytService.isMusicPlaylist(playlist)
+      }));
+      const filtered = desiredType === 'all'
+        ? classified
+        : classified.filter((pl: any) => desiredType === 'music' ? pl.isMusicPlaylist : !pl.isMusicPlaylist);
       return res.json({
-        items: videoPlaylists,
+        items: filtered,
         nextPageToken: result.nextPageToken
       });
     }
@@ -79,7 +85,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
           console.log(`✅ Returning ${cachedPlaylists.length} playlists from MongoDB cache (${ageDisplay})`);
 
           // YouTube API形式に変換して返す
-          const formattedPlaylists = cachedPlaylists.map(pl => ({
+          const filteredCached = desiredType === 'all'
+            ? cachedPlaylists
+            : cachedPlaylists.filter(pl => desiredType === 'music' ? !!pl.isMusicPlaylist : !pl.isMusicPlaylist);
+
+          const formattedPlaylists = filteredCached.map(pl => ({
             kind: 'youtube#playlist',
             id: pl.playlistId,
             snippet: {
@@ -98,7 +108,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
             },
             status: {
               privacyStatus: pl.privacy
-            }
+            },
+            isMusicPlaylist: pl.isMusicPlaylist === true
           }));
 
           return res.json({
@@ -119,7 +130,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
 
     // キャッシュがある場合はETagを使用
-    let videoPlaylists: any[] = [];
+    let playlistsWithType: any[] = [];
 
     if (cachedPlaylists.length > 0) {
       // 差分更新モード：ETagを使用して変更チェック
@@ -134,29 +145,26 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         console.log('📊 ETag match: Playlists not modified (using cached data)');
       }
 
-      videoPlaylists = result.items.filter((playlist: any) =>
-        !ytService.isMusicPlaylist(playlist)
-      );
+      playlistsWithType = result.items.map((playlist: any) => ({
+        ...playlist,
+        isMusicPlaylist: ytService.isMusicPlaylist(playlist)
+      }));
     } else {
       // 全取得モード
       console.log('📥 Using full fetch mode for playlists');
       const playlistsResult = await ytService.getPlaylists();
-      videoPlaylists = playlistsResult.items.filter((playlist: any) =>
-        !ytService.isMusicPlaylist(playlist)
-      );
+      playlistsWithType = playlistsResult.items.map((playlist: any) => ({
+        ...playlist,
+        isMusicPlaylist: ytService.isMusicPlaylist(playlist)
+      }));
     }
 
     // 3. MongoDBにキャッシュを保存
-    if (mongoose.connection.readyState === 1 && videoPlaylists.length > 0) {
+    if (mongoose.connection.readyState === 1 && playlistsWithType.length > 0) {
       try {
         // 音楽判定キーワード
-        const musicKeywords = ['music', 'song', 'album', 'artist', 'band', '音楽', '曲', 'ミュージック', 'アルバム'];
-
-        const bulkOps = videoPlaylists.map((pl: any) => {
-          const title = (pl.snippet?.title || '').toLowerCase();
-          const description = (pl.snippet?.description || '').toLowerCase();
-          const text = title + ' ' + description;
-          const isMusicPlaylist = musicKeywords.some(keyword => text.includes(keyword.toLowerCase()));
+        const bulkOps = playlistsWithType.map((pl: any) => {
+          const isMusicPlaylist = !!pl.isMusicPlaylist;
 
           return {
             updateOne: {
@@ -184,14 +192,18 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         });
 
         await CachedPlaylist.bulkWrite(bulkOps);
-        console.log(`✅ Saved ${videoPlaylists.length} playlists to MongoDB cache`);
+        console.log(`✅ Saved ${playlistsWithType.length} playlists to MongoDB cache`);
       } catch (dbError) {
         console.error('Failed to save playlists to MongoDB:', dbError);
       }
     }
 
+    const responseItems = desiredType === 'all'
+      ? playlistsWithType
+      : playlistsWithType.filter((pl: any) => desiredType === 'music' ? pl.isMusicPlaylist : !pl.isMusicPlaylist);
+
     res.json({
-      items: videoPlaylists,
+      items: responseItems,
       nextPageToken: undefined
     });
   } catch (error) {

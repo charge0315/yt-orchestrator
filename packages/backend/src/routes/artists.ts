@@ -20,8 +20,8 @@ router.use(authenticate);
  */
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    // MongoDBキャッシュから全チャンネルを取得
-    const cachedChannels = await CachedChannel.find({ userId: req.userId }).lean();
+    // MongoDBキャッシュからアーティストのみ取得
+    const cachedChannels = await CachedChannel.find({ userId: req.userId, isArtist: true }).lean();
 
     if (cachedChannels.length > 0) {
       // キャッシュされたチャンネルをYouTube API形式に変換
@@ -98,6 +98,7 @@ router.get('/new-releases', async (req: AuthRequest, res: Response) => {
     const cachedChannels = await CachedChannel
       .find({
         userId: req.userId,
+        isArtist: true,
         latestVideoId: { $exists: true, $ne: null }
       })
       .sort({ latestVideoPublishedAt: -1 })

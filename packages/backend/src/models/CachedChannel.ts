@@ -19,6 +19,7 @@ export interface ICachedChannel extends Document {
   latestVideoPublishedAt?: Date; // 最新動画の公開日時（差分更新用）
   subscriptionId?: string; // YouTube subscription ID
   etag?: string; // ETag for conditional requests（差分更新用）
+  isArtist?: boolean;
   cachedAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -50,6 +51,7 @@ const CachedChannelSchema = new Schema<ICachedChannel>(
     latestVideoPublishedAt: Date,
     subscriptionId: String,
     etag: String,
+    isArtist: { type: Boolean, default: false },
     cachedAt: {
       type: Date,
       default: Date.now
