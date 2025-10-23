@@ -6,6 +6,22 @@ YouTubeとYouTube Musicのオーケストレータ - 音楽・動画管理をよ
 
 YouTube Orchestratorは、YouTubeとYouTube Musicの体験を向上させるための包括的な管理ツールです。YouTube Data API v3と直接統合し、プレイリスト管理、AIによるおすすめ、アーティストの新曲追跡、チャンネル管理など、様々な機能を提供します。
 
+### トークンの自動更新と再認証
+
+バックエンドはユーザーの YouTube アクセストークンをメモリと MongoDB で管理し、期限切れ時には自動的に再発行（リフレッシュ）します。リフレッシュ不能（`invalid_grant` など）を検出した場合はトークンを破棄し、`reauthRequired` と `reauthReason` を保存します。クライアントは `GET /api/auth/me` のレスポンスに含まれる以下のフィールドを用いて再ログインを案内できます。
+
+- `reauthRequired: boolean` 再ログインが必要な場合に true
+- `reauthReason: string | undefined` 理由コード（例: `invalid_token`, `missing`, `expired`）
+- `reauthMessage: string | undefined` ユーザー向けメッセージ（日本語）
+
+### バックグラウンド更新ジョブ（キャッシュ更新）
+
+`node-cron` により定期的にキャッシュを更新します（`packages/backend/src/jobs/updateCache.ts`）。
+
+- チャンネル: `publishedAfter` による差分取得でクォータ節約、最新動画のみ反映、アーティスト判定を軽量実施
+- プレイリスト: ETag による条件付きリクエスト（304 Not Modified）で変更時のみ更新、必要に応じて音楽プレイリスト判定を再計算
+- スケジュール: 既定は 30分毎（`0 */30 * * * *`）。`CACHE_UPDATE_SCHEDULE` で上書き可能（例: `*/5 * * * *`）
+
 ## ✨ 機能
 
 - **🏠 ホームページ**
@@ -155,12 +171,10 @@ npm install
    f. アプリケーションの種類: 「ウェブアプリケーション」
 
    g. 承認済みのJavaScript生成元に追加:
-      - `http://localhost:5173`
-      - `http://localhost:5174`
+      - `http://localhost:5175`
 
    h. 承認済みのリダイレクトURIに追加:
-      - `http://localhost:5173`
-      - `http://localhost:5174`
+      - `http://localhost:5175`
 
    i. OAuth同意画面でスコープを追加:
       - `https://www.googleapis.com/auth/youtube`
@@ -191,17 +205,15 @@ MONGODB_PUBLIC_API_KEY=your_mongodb_public_api_key_here
 # Google OAuth 2.0
 GOOGLE_CLIENT_ID=your_google_client_id_here
 GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 
-# JWT & Session
-JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+# Session
 SESSION_SECRET=your-random-secret-key-change-this-in-production
 
 # OpenAI API
 OPENAI_API_KEY=your_openai_api_key_here
 
 # CORS
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=http://localhost:5175
 ```
 
 **重要**: `.env`ファイルは機密情報を含むため、Gitにコミットされません。
@@ -215,7 +227,6 @@ cp .env.example .env
 `.env`ファイルを編集：
 ```
 VITE_API_URL=http://localhost:3001/api
-VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 ```
 
 ### 開発サーバーの起動
@@ -227,7 +238,7 @@ npm run dev
 ```
 
 これにより、フロントエンドとバックエンドの両方が同時に起動します：
-- フロントエンド: http://localhost:5173
+- フロントエンド: http://localhost:5175
 - バックエンドAPI: http://localhost:3001
 
 個別に起動する場合：

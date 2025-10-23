@@ -117,6 +117,27 @@ app.listen(PORT, async () => {
   // MongoDB接続
   await connectDatabase();
 
+  // MongoDBから有効なユーザートークンをプリロード
+  try {
+    const { User } = await import('./models/User.js');
+    const { registerUserToken } = await import('./jobs/updateCache.js');
+    const now = new Date();
+    const users = await User.find({ youtubeAccessToken: { $exists: true, $ne: null } });
+    for (const u of users) {
+      if (!u.youtubeTokenExpiry || u.youtubeTokenExpiry > now) {
+        registerUserToken(
+          u.googleId,
+          u.youtubeAccessToken as string,
+          u.youtubeRefreshToken as string | undefined,
+          u.youtubeTokenExpiry
+        );
+      }
+    }
+    console.log(`✅ Preloaded tokens for ${users.length} users`);
+  } catch (e) {
+    console.warn('Skipping token preload:', e?.toString?.() || e);
+  }
+
   // バックグラウンドジョブ開始
   startCacheUpdateJob();
 });
