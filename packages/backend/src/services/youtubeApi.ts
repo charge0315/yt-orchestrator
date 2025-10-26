@@ -80,11 +80,11 @@ export class YouTubeApiService {
       }
 
       const response = await this.youtube.playlists.list({
-        part: ['snippet', 'contentDetails'],
+        part: ['snippet', 'contentDetails', 'status'], // statusを追加
         mine: true,
         maxResults: 25, // クォータ削減: 50 → 25
         pageToken,
-        fields: 'etag,items(id,etag,snippet(title,description,thumbnails),contentDetails(itemCount)),nextPageToken' // etagも取得
+        fields: 'etag,items(id,etag,snippet(title,description,thumbnails,channelId,channelTitle),contentDetails(itemCount),status(privacyStatus)),nextPageToken' // etagも取得
       }, { headers });
 
       const result = {
@@ -184,7 +184,7 @@ export class YouTubeApiService {
       }
 
       const musicCount = videos.filter((vid) => vid.snippet?.categoryId === '10').length;
-      const isMusic = musicCount / videos.length >= 0.5;
+      const isMusic = musicCount > 0; // 1つでもあればtrue
       this.setCache(cacheKey, isMusic);
       return isMusic;
     } catch (e) {
@@ -272,8 +272,7 @@ export class YouTubeApiService {
       }
 
       const musicCount = videos.filter((video) => video.snippet?.categoryId === '10').length;
-      const musicRatio = musicCount / videos.length;
-      const isMusic = musicRatio >= 0.5;
+      const isMusic = musicCount > 0; // 1つでもあればtrue
       this.setCache(cacheKey, isMusic);
       return isMusic;
     } catch (error) {

@@ -4,7 +4,7 @@
  * 概要:
  * - 環境変数（.env）の読み込み
  * - Express アプリの初期化（CORS/JSON/Cookie/セッション）
- * - 各 API ルートの登録（認証・プレイリスト・アーティスト・チャンネル・検索など）
+ * - 各 API ルートの登録（認証・検索など）
  * - ヘルスチェックエンドポイント
  * - データベース接続とトークンのプリロード
  * - バックグラウンドジョブの起動
@@ -20,14 +20,14 @@ import { connectDatabase } from './config/database.js'
 import { startCacheUpdateJob } from './jobs/updateCache.js'
 
 // ルートのインポート
-import playlistRoutes from './routes/playlists.js'
 import songRoutes from './routes/songs.js'
-import artistRoutes from './routes/artists.js'
-import channelRoutes from './routes/channels.js'
 import recommendationRoutes from './routes/recommendations.js'
 import authRoutes from './routes/auth.js'
 import youtubeRoutes from './routes/youtube.js'
 import ytmusicRoutes from './routes/ytmusic.js'
+import allPlaylistsRoutes from './routes/allPlaylists.js'
+import cachedChannelsRoutes from './routes/cachedChannels.js' // Renamed
+import cachedArtistsRoutes from './routes/cachedArtists.js' // Renamed
 import { seedInitialData } from './utils/seedData.js'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -107,20 +107,18 @@ app.use(
 // 認証関連（セッションベースの認証）
 app.use('/api/auth', authRoutes)
 
-// コンテンツ（プレイリスト・アーティスト・チャンネル・おすすめ）
+// コンテンツ
 app.use('/api/songs', songRoutes)
-app.use('/api/artists', artistRoutes)
-app.use('/api/channels', channelRoutes)
 app.use('/api/recommendations', recommendationRoutes)
+app.use('/api/playlists', allPlaylistsRoutes)
+app.use('/api/channels', cachedChannelsRoutes)
+app.use('/api/artists', cachedArtistsRoutes)
 
 // YouTube API（動画向け）
 app.use('/api/youtube', youtubeRoutes)
 
 // YouTube Music API（音楽向け）
 app.use('/api/ytmusic', ytmusicRoutes)
-
-// プレイリスト
-app.use('/api/playlists', playlistRoutes)
 
 // ヘルスチェック
 app.get('/api/health', (_req, res) => {
