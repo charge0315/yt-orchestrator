@@ -12,14 +12,14 @@ import { connectDatabase } from './config/database.js';
 import { startCacheUpdateJob } from './jobs/updateCache.js';
 
 // 繝ｫ繝ｼ繝医・繧､繝ｳ繝昴・繝・
-import playlistRoutes from './routes/playlists.js';
-import songRoutes from './routes/songs.js';
-import artistRoutes from './routes/artists.js';
-import channelRoutes from './routes/channels.js';
-import recommendationRoutes from './routes/recommendations.js';
+import playlistRoutes from './routes/playlists2.js';
+import songRoutes from './routes/songs2.js';
+import artistRoutes from './routes/artists2.js';
+import channelRoutes from './routes/channels2.js';
+import recommendationRoutes from './routes/recommendations2.js';
 import authRoutes from './routes/auth.js';
-import youtubeRoutes from './routes/youtube.js';
-import ytmusicRoutes from './routes/ytmusic.js';
+import youtubeRoutes from './routes/youtube2.js';
+import ytmusicRoutes from './routes/ytmusic2.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 

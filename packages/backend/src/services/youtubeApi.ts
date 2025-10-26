@@ -237,6 +237,14 @@ export class YouTubeApiService {
       'mix', 'compilation', 'best of', 'hits'
     ];
 
+    // 追加の日本語キーワードを補強（文字化け対策）
+    try {
+      musicKeywords.push(
+        'アーティスト', 'バンド', 'プレイリスト', 'ミュージック',
+        'ボーカロイド', 'ボカロ', 'カバー'
+      );
+    } catch {}
+
     const musicKeywordCount = musicKeywords.filter(keyword => 
       combinedText.includes(keyword)
     ).length;
@@ -250,6 +258,13 @@ export class YouTubeApiService {
       'anime', 'アニメ', 'movie', '映画', 'trailer', '予告',
       'unboxing', '開封', 'haul', 'shorts', 'tiktok'
     ];
+
+    // 追加の日本語キーワードを補強（文字化け対策）
+    try {
+      videoKeywords.push(
+        'ゲーム実況', '旅行', '旅', '開封'
+      );
+    } catch {}
 
     const videoKeywordCount = videoKeywords.filter(keyword => 
       combinedText.includes(keyword)

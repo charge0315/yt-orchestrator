@@ -1,9 +1,13 @@
-﻿/**
- * 繧｢繝ｼ繝・ぅ繧ｹ繝茨ｼ・ouTube Music諠ｳ螳壹メ繝｣繝ｳ繝阪Ν・峨Ν繝ｼ繝・ */
+/**
+ * アーティスト（YouTube Music想定チャンネル）ルーター
+ * - 24時間キャッシュ優先
+ * - 必要時のみYouTube APIを呼び出し（別要件により1日1回制限に対応）
+ */
 import express, { Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { YouTubeApiService } from '../services/youtubeApi.js';
 import { CachedChannel } from '../models/CachedChannel.js';
+import { acquireYouTubeDaily } from '../utils/dailyGate.js';
 
 const router = express.Router();
 
@@ -12,20 +16,22 @@ router.use(authenticate);
 // GET /api/artists
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    // 1) 繧ｭ繝｣繝・す繝･蜆ｪ蜈・    const cachedDocs = await CachedChannel.find({ userId: req.userId, isArtist: true });
-    if (cachedDocs.length > 0) {
-      // 24譎る俣莉･蜀・・繧ｭ繝｣繝・す繝･縺ｧ縺ゅｌ縺ｰ縺昴ｌ繧定ｿ斐☆・井ｸ崎ｶｳ縺ｯ霆ｽ驥剰｣懷ｮ鯉ｼ・      const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24譎る俣
+    const refresh = (req.query.refresh as string | undefined) === '1' || (req.query.force as string | undefined) === '1';
+    const cachedDocs = await CachedChannel.find({ userId: req.userId, isArtist: true });
+
+    if (cachedDocs.length > 0 && !refresh) {
+      // 24時間以内のキャッシュであればそれを返す（不足は軽量補完）
+      const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24時間
       const oldestCache = cachedDocs.reduce((oldest: any, current: any) =>
         current.cachedAt < oldest.cachedAt ? current : oldest
       );
       const cacheAge = Date.now() - new Date(oldestCache.cachedAt).getTime();
       if (cacheAge < CACHE_DURATION_MS) {
-        // 譛譁ｰ蜍慕判諠・ｱ縺梧ｬ關ｽ縺励※縺・ｋ蝣ｴ蜷医・縺ｿ霆ｽ驥上↓陬懷ｮ・        let ytForEnrich: YouTubeApiService | undefined;
+        // 最新動画情報が欠落している場合のみ軽量に補完
+        let ytForEnrich: YouTubeApiService | undefined;
         const enriched = await Promise.all(
           cachedDocs.map(async (doc) => {
-            if (doc.latestVideoId && doc.latestVideoTitle && doc.latestVideoThumbnail) {
-              return doc;
-            }
+            if (doc.latestVideoId && doc.latestVideoTitle && doc.latestVideoThumbnail) return doc;
             try {
               if (!ytForEnrich) {
                 ytForEnrich = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
@@ -33,7 +39,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
               const vids = await ytForEnrich.getChannelVideos(doc.channelId, 1);
               const latest = vids?.[0];
               if (latest) {
-                doc.latestVideoId = latest.id?.videoId || (latest as any).id;
+                doc.latestVideoId = (latest as any).id?.videoId || (latest as any).id;
                 doc.latestVideoTitle = latest.snippet?.title;
                 doc.latestVideoThumbnail = latest.snippet?.thumbnails?.high?.url || latest.snippet?.thumbnails?.medium?.url || latest.snippet?.thumbnails?.default?.url;
                 doc.latestVideoPublishedAt = latest.snippet?.publishedAt ? new Date(latest.snippet.publishedAt) : doc.latestVideoPublishedAt;
@@ -66,7 +72,36 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // 2) 繝輔か繝ｼ繝ｫ繝舌ャ繧ｯ・唳ouTube API縺九ｉ雉ｼ隱ｭ繝√Ε繝ｳ繝阪Ν蜿門ｾ冷・繧｢繝ｼ繝・ぅ繧ｹ繝亥愛螳壺・譛譁ｰ蜍慕判莉倅ｸ・    const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
+    // 日次制限: 当日既に使用済みならキャッシュがあれば返す、無ければ空
+    {
+      const allowed = await acquireYouTubeDaily(req.userId);
+      if (!allowed) {
+        if (cachedDocs.length > 0) {
+          const formatted = cachedDocs.map((ch: any) => ({
+            id: ch.subscriptionId || ch.channelId,
+            snippet: {
+              resourceId: { channelId: ch.channelId },
+              title: ch.channelTitle,
+              description: ch.channelDescription,
+              thumbnails: {
+                default: { url: ch.thumbnailUrl },
+                medium: { url: ch.thumbnailUrl },
+                high: { url: ch.thumbnailUrl }
+              }
+            },
+            latestVideoThumbnail: ch.latestVideoThumbnail,
+            latestVideoTitle: ch.latestVideoTitle,
+            latestVideoId: ch.latestVideoId,
+            latestVideoPublishedAt: ch.latestVideoPublishedAt
+          }));
+          return res.json(formatted);
+        }
+        return res.json([]);
+      }
+    }
+
+    // 2) フォールバック：YouTube APIから購読チャンネル取得・アーティスト判定・最新動画付与
+    const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
     const subs = await yt.getSubscriptions();
 
     const enriched = await Promise.all(
@@ -87,7 +122,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
           return {
             id: sub.id,
             snippet: sub.snippet,
-            latestVideoId: latest?.id?.videoId || latest?.id,
+            latestVideoId: (latest as any)?.id?.videoId || (latest as any)?.id,
             latestVideoThumbnail: latest?.snippet?.thumbnails?.high?.url || latest?.snippet?.thumbnails?.medium?.url || latest?.snippet?.thumbnails?.default?.url,
             latestVideoTitle: latest?.snippet?.title,
             latestVideoPublishedAt: latest?.snippet?.publishedAt ? new Date(latest.snippet.publishedAt) : undefined
@@ -100,7 +135,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     const artists = enriched.filter(Boolean);
 
-    //
+    // DBへ保存（アップサート）
     if (artists.length > 0) {
       try {
         await CachedChannel.bulkWrite(
@@ -139,7 +174,7 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
     const subscription = await yt.subscribe(channelId);
     res.status(201).json(subscription);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Failed to subscribe to artist' });
   }
 });
@@ -150,7 +185,7 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
     await yt.unsubscribe(req.params.id);
     res.json({ message: 'Unsubscribed from artist successfully' });
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Failed to unsubscribe from artist' });
   }
 });
@@ -158,13 +193,39 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
 // GET /api/artists/new-releases
 router.get('/new-releases', async (req: AuthRequest, res: Response) => {
   try {
+    const refresh = (req.query.refresh as string | undefined) === '1' || (req.query.force as string | undefined) === '1';
     let cached = await CachedChannel
       .find({ userId: req.userId, isArtist: true, latestVideoId: { $exists: true, $ne: null } })
       .sort({ latestVideoPublishedAt: -1 })
       .limit(20)
       .lean();
 
-    if (cached.length === 0) {
+    if (cached.length === 0 || refresh) {
+      // 日次制限: 当日使用済みならキャッシュのみ返す
+      const allowed = await acquireYouTubeDaily(req.userId);
+      if (!allowed && cached.length > 0) {
+        const newReleases = cached.map((ch: any) => ({
+          id: { videoId: ch.latestVideoId },
+          videoId: ch.latestVideoId,
+          snippet: {
+            channelId: ch.channelId,
+            channelTitle: ch.channelTitle,
+            title: ch.latestVideoTitle,
+            thumbnails: {
+              default: { url: ch.latestVideoThumbnail },
+              medium: { url: ch.latestVideoThumbnail },
+              high: { url: ch.latestVideoThumbnail }
+            },
+            publishedAt: ch.latestVideoPublishedAt
+          },
+          title: ch.latestVideoTitle,
+          thumbnail: ch.latestVideoThumbnail
+        }));
+        return res.json(newReleases);
+      } else if (!allowed) {
+        return res.json([]);
+      }
+
       const artists = await CachedChannel.find({ userId: req.userId, isArtist: true }).lean();
       const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
       const updated = await Promise.all(
@@ -175,7 +236,7 @@ router.get('/new-releases', async (req: AuthRequest, res: Response) => {
             if (latest) {
               return {
                 ...ch,
-                latestVideoId: latest.id?.videoId || latest.id,
+                latestVideoId: (latest as any).id?.videoId || (latest as any).id,
                 latestVideoThumbnail: latest.snippet?.thumbnails?.high?.url || latest.snippet?.thumbnails?.medium?.url || latest.snippet?.thumbnails?.default?.url,
                 latestVideoTitle: latest.snippet?.title,
                 latestVideoPublishedAt: latest.snippet?.publishedAt ? new Date(latest.snippet.publishedAt) : undefined
@@ -205,7 +266,7 @@ router.get('/new-releases', async (req: AuthRequest, res: Response) => {
       cached = updated.filter((c: any) => !!c.latestVideoId);
     }
 
-    const newReleases = cached.map(ch => ({
+    const newReleases = cached.map((ch: any) => ({
       id: { videoId: ch.latestVideoId },
       videoId: ch.latestVideoId,
       snippet: {
@@ -224,9 +285,10 @@ router.get('/new-releases', async (req: AuthRequest, res: Response) => {
     }));
 
     return res.json(newReleases);
-  } catch (error) {
+  } catch {
     res.status(500).json({ error: 'Failed to get new releases' });
   }
 });
 
 export default router;
+

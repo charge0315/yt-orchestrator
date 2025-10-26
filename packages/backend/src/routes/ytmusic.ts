@@ -1,76 +1,93 @@
-﻿/**
- * YouTube Music莠呈鋤繝ｫ繝ｼ繝・ * YouTube Data API v3繧剃ｽｿ逕ｨ縺励※YouTube Music縺ｮ讖溯・繧呈署萓・ * 豕ｨ: YouTube Music縺ｯYouTube縺ｮ荳驛ｨ縺ｪ縺ｮ縺ｧ縲∝酔縺連PI繧剃ｽｿ逕ｨ縺ｧ縺阪∪縺・ */
-import express, { Response } from 'express';
-import { authenticate, AuthRequest } from '../middleware/auth.js';
-import { YouTubeApiService } from '../services/youtubeApi.js';
-import { CachedPlaylist } from '../models/CachedPlaylist.js';
-import mongoose from 'mongoose';
+/**
+ * YouTube Music 互換ルーター
+ * - YouTube Data API v3 を使用して音楽系プレイリストを提供
+ * - MongoDB キャッシュ優先（必要時のみ API 取得）
+ * - 日次制限（1日1回）に対応: 強制取得時のみ当日枠を消費
+ */
+import express, { Response } from 'express'
+import { authenticate, AuthRequest } from '../middleware/auth.js'
+import { YouTubeApiService } from '../services/youtubeApi.js'
+import { CachedPlaylist } from '../models/CachedPlaylist.js'
+import mongoose from 'mongoose'
+import { acquireYouTubeDaily } from '../utils/dailyGate.js'
 
-const router = express.Router();
+const router = express.Router()
 
 /**
  * GET /api/ytmusic/auth/status
- * YouTube Music謗･邯夂憾諷九ｒ遒ｺ隱・ * 豕ｨ: YouTube Data API繧剃ｽｿ逕ｨ縺励※縺・ｋ縺溘ａ縲∝ｸｸ縺ｫ謗･邯壽ｸ医∩
+ * 接続状態を返却（YouTube Data API を利用中のため常に接続済み）
  */
-router.get('/auth/status', authenticate, async (req: AuthRequest, res: Response) => {
+router.get('/auth/status', authenticate, async (_req: AuthRequest, res: Response) => {
   try {
-    // YouTube Data API v3繧剃ｽｿ逕ｨ縺励※縺・ｋ縺溘ａ縲・    // Google OAuth縺悟ｮ御ｺ・＠縺ｦ縺・ｌ縺ｰ閾ｪ蜍慕噪縺ｫ謗･邯壽ｸ医∩
-    res.json({
-      connected: true,
-      message: 'YouTube Data API v3 を使用しているため、常に接続済みです'
-    });
+    res.json({ connected: true, message: 'YouTube Data API v3 を利用中のため、常に接続済みです' })
   } catch (error) {
-    console.error('Error checking YouTube Music status:', error);
-    res.status(500).json({ error: 'Failed to check YouTube Music status' });
+    console.error('Error checking YouTube Music status:', error)
+    res.status(500).json({ error: 'Failed to check YouTube Music status' })
   }
-});
+})
 
 /**
  * GET /api/ytmusic/playlists
- * YouTube Music繝励Ξ繧､繝ｪ繧ｹ繝井ｸ隕ｧ繧貞叙蠕・ * 繝励Ξ繧､繝ｪ繧ｹ繝亥・縺ｮ蜍慕判縺ｮ繧ｫ繝・ざ繝ｪID繧偵メ繧ｧ繝・け縺励※髻ｳ讌ｽ邉ｻ縺ｮ繧ゅ・縺ｮ縺ｿ繧偵ヵ繧｣繝ｫ繧ｿ繝ｪ繝ｳ繧ｰ
- * 繧ｯ繧ｨ繝ｪ繝代Λ繝｡繝ｼ繧ｿ: pageToken (繧ｪ繝励す繝ｧ繝ｳ)
+ * 音楽プレイリスト一覧を返却（キャッシュ優先）
+ * クエリ: force=1|refresh=1 で強制取得（当日枠が必要）
  */
 router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    console.log('凍 YouTube Music playlists request received');
-    const force = (req.query.force as string | undefined) === '1' || (req.query.refresh as string | undefined) === '1' 
-    if (force) {
+    const force = (req.query.force as string | undefined) === '1' || (req.query.refresh as string | undefined) === '1'
+
+    if (force && (await acquireYouTubeDaily(req.userId))) {
       try {
-        const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-        const result = await ytService.getPlaylists();
-        const musicOnly = (result.items || []).filter((pl: any) => ytService.isMusicPlaylist(pl));
-        return res.json({ items: musicOnly, nextPageToken: result.nextPageToken });
+        const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
+        const result = await yt.getPlaylists()
+        const musicOnly = (result.items || []).filter((pl: any) => yt.isMusicPlaylist(pl))
+
+        // キャッシュ更新（次回通常アクセスで反映）
+        try {
+          if (mongoose.connection.readyState === 1 && musicOnly.length > 0) {
+            const bulkOps = musicOnly.map((pl: any) => ({
+              updateOne: {
+                filter: { userId: req.userId, playlistId: pl.id },
+                update: {
+                  title: pl.snippet?.title,
+                  description: pl.snippet?.description,
+                  thumbnailUrl:
+                    pl.snippet?.thumbnails?.high?.url ||
+                    pl.snippet?.thumbnails?.medium?.url ||
+                    pl.snippet?.thumbnails?.default?.url,
+                  itemCount: pl.contentDetails?.itemCount,
+                  channelId: pl.snippet?.channelId,
+                  channelTitle: pl.snippet?.channelTitle,
+                  privacy: pl.status?.privacyStatus,
+                  isMusicPlaylist: true,
+                  etag: pl.etag,
+                  cachedAt: new Date(),
+                },
+                upsert: true,
+              },
+            }))
+            await CachedPlaylist.bulkWrite(bulkOps)
+          }
+        } catch {}
+
+        return res.json({ items: musicOnly, nextPageToken: result.nextPageToken })
       } catch (e) {
-        console.error('Force fetch YT Music playlists failed:', e);
-        return res.json({ items: [], nextPageToken: undefined });
+        console.error('Force fetch YT Music playlists failed:', e)
+        return res.json({ items: [], nextPageToken: undefined })
       }
     }
 
-    // MongoDB縺九ｉ蜈ｨ繝励Ξ繧､繝ｪ繧ｹ繝医・繧ｭ繝｣繝・す繝･繧貞叙蠕暦ｼ医け繧ｩ繝ｼ繧ｿ遽邏・ｼ・    // API繧ｯ繧ｩ繝ｼ繧ｿ雜・℃譎ゅ・髻ｳ讌ｽ繝輔ぅ繝ｫ繧ｿ繧貞､悶＠縺ｦ蜈ｨ繝励Ξ繧､繝ｪ繧ｹ繝医ｒ陦ｨ遉ｺ
+    // キャッシュ優先で返却
     if (mongoose.connection.readyState === 1) {
-      // 髻ｳ讌ｽ繝励Ξ繧､繝ｪ繧ｹ繝医・縺ｿ繧定ｿ斐☆
-      const cachedPlaylists = await CachedPlaylist.find({
-        userId: req.userId,
-        isMusicPlaylist: true
-      });
-
+      const cachedPlaylists = await CachedPlaylist.find({ userId: req.userId, isMusicPlaylist: true })
       if (cachedPlaylists.length > 0) {
-        // キャッシュの年齢を計算（情報表示用）
-        const oldestCache = cachedPlaylists.reduce((oldest, current) =>
-          current.cachedAt < oldest.cachedAt ? current : oldest
-        );
-        const cacheAge = Date.now() - oldestCache.cachedAt.getTime();
-        const cacheAgeMinutes = Math.round(cacheAge / 1000 / 60);
-        const cacheAgeHours = Math.round(cacheAge / 1000 / 60 / 60);
+        const oldestCache = cachedPlaylists.reduce((oldest, current) => (current.cachedAt < oldest.cachedAt ? current : oldest))
+        const cacheAge = Date.now() - oldestCache.cachedAt.getTime()
+        const cacheAgeMinutes = Math.round(cacheAge / 1000 / 60)
+        const cacheAgeHours = Math.round(cacheAge / 1000 / 60 / 60)
+        const ageDisplay = cacheAgeHours >= 1 ? `${cacheAgeHours}h old` : `${cacheAgeMinutes}min old`
+        console.log(`📀 Returning ${cachedPlaylists.length} YouTube Music playlists from MongoDB cache (${ageDisplay})`)
 
-        const ageDisplay = cacheAgeHours >= 1
-          ? `${cacheAgeHours}h old`
-          : `${cacheAgeMinutes}min old`;
-
-        console.log(`凍 Returning ${cachedPlaylists.length} YouTube Music playlists from MongoDB cache (${ageDisplay})`);
-
-        // YouTube API蠖｢蠑上↓螟画鋤縺励※霑斐☆
-        const formattedPlaylists = cachedPlaylists.map(pl => ({
+        const formatted = cachedPlaylists.map((pl) => ({
           kind: 'youtube#playlist',
           id: pl.playlistId,
           snippet: {
@@ -79,105 +96,83 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
             thumbnails: {
               default: { url: pl.thumbnailUrl },
               medium: { url: pl.thumbnailUrl },
-              high: { url: pl.thumbnailUrl }
+              high: { url: pl.thumbnailUrl },
             },
             channelId: pl.channelId,
-            channelTitle: pl.channelTitle
+            channelTitle: pl.channelTitle,
           },
-          contentDetails: {
-            itemCount: pl.itemCount
-          },
-          status: {
-            privacyStatus: pl.privacy
-          }
-        }));
+          contentDetails: { itemCount: pl.itemCount },
+          status: { privacyStatus: pl.privacy },
+        }))
 
-        return res.json({
-          items: formattedPlaylists,
-          nextPageToken: undefined
-        });
+        return res.json({ items: formatted, nextPageToken: undefined })
       }
-
-      console.log('笞・・ MongoDB music playlist cache is empty, fetching from API');
-      return res.json({ items: [], nextPageToken: undefined });
     }
 
-    // MongoDB縺悟茜逕ｨ縺ｧ縺阪↑縺・ｴ蜷・    console.log('笞・・ MongoDB not connected, returning empty for music playlists');
-    res.json({ items: [], nextPageToken: undefined });
-  } catch (error: any) {
-    console.error('笶・Error fetching YouTube Music playlists:', error);
-    res.json({ items: [], nextPageToken: undefined });
+    console.log('⚠️ MongoDB not connected or no cache for music playlists')
+    res.json({ items: [], nextPageToken: undefined })
+  } catch (error) {
+    console.error('Error fetching YouTube Music playlists:', error)
+    res.json({ items: [], nextPageToken: undefined })
   }
-});
+})
 
 /**
  * GET /api/ytmusic/playlists/:id
- * 迚ｹ螳壹・繝励Ξ繧､繝ｪ繧ｹ繝医・隧ｳ邏ｰ繧貞叙蠕・ */
+ * プレイリスト詳細を返却（変換してフロントの想定構造に合わせる）
+ */
 router.get('/playlists/:id', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-    const playlist = await ytService.getPlaylist(req.params.id);
+    const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
+    const playlist = await yt.getPlaylist(req.params.id)
+    if (!playlist) return res.status(404).json({ error: 'Playlist not found' })
 
-    if (!playlist) {
-      return res.status(404).json({ error: 'Playlist not found' });
-    }
-
-    // 繝励Ξ繧､繝ｪ繧ｹ繝医・繧｢繧､繝・Β繧ょ叙蠕・    const itemsResult = await ytService.getPlaylistItems(req.params.id);
-
-    const transformedPlaylist = {
+    const itemsResult = await yt.getPlaylistItems(req.params.id)
+    const transformed = {
       _id: playlist.id,
       name: playlist.snippet?.title || '',
       description: playlist.snippet?.description || '',
       thumbnail: playlist.snippet?.thumbnails?.default?.url,
-      songs: itemsResult.items.map((item: any) => ({
+      songs: (itemsResult.items || []).map((item: any) => ({
         videoId: item.snippet?.resourceId?.videoId,
         title: item.snippet?.title,
         artist: item.snippet?.videoOwnerChannelTitle || 'Unknown Artist',
         thumbnail: item.snippet?.thumbnails?.default?.url,
-        addedAt: new Date(item.snippet?.publishedAt)
+        addedAt: item.snippet?.publishedAt ? new Date(item.snippet.publishedAt) : undefined,
       })),
       createdAt: playlist.snippet?.publishedAt ? new Date(playlist.snippet.publishedAt) : new Date(),
-      updatedAt: new Date()
-    };
-
-    res.json(transformedPlaylist);
+      updatedAt: new Date(),
+    }
+    res.json(transformed)
   } catch (error) {
-    console.error('Error fetching YouTube Music playlist:', error);
-    res.status(500).json({ error: 'Failed to fetch YouTube Music playlist' });
+    console.error('Error fetching YouTube Music playlist:', error)
+    res.status(500).json({ error: 'Failed to fetch YouTube Music playlist' })
   }
-});
+})
 
 /**
  * GET /api/ytmusic/search
- * 蜍慕判繧呈､懃ｴ｢・・ouTube Music縺ｨ縺励※・・ */
+ * 楽曲（動画）検索を実行
+ */
 router.get('/search', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const { query } = req.query;
+    const { query } = req.query
+    if (!query || typeof query !== 'string') return res.status(400).json({ error: 'Search query is required' })
 
-    if (!query || typeof query !== 'string') {
-      return res.status(400).json({ error: 'Search query is required' });
-    }
-
-    const ytService = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken);
-
-    // YouTube Data API縺ｮsearch讖溯・繧剃ｽｿ逕ｨ
-    // 髻ｳ讌ｽ繧ｫ繝・ざ繝ｪ・・ategoryId=10・峨〒繝輔ぅ繝ｫ繧ｿ繝ｪ繝ｳ繧ｰ
-    const results = await ytService.searchVideos(query, 20);
-
-    const transformedResults = results.map((video: any) => ({
+    const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
+    const results = await yt.searchVideos(query, 20)
+    const transformed = results.map((video: any) => ({
       videoId: video.id?.videoId,
       title: video.snippet?.title,
       artist: video.snippet?.channelTitle || 'Unknown Artist',
-      thumbnail: video.snippet?.thumbnails?.default?.url
-    }));
-
-    res.json(transformedResults);
+      thumbnail: video.snippet?.thumbnails?.default?.url,
+    }))
+    res.json(transformed)
   } catch (error) {
-    console.error('Error searching YouTube Music:', error);
-    res.status(500).json({ error: 'Failed to search YouTube Music' });
+    console.error('Error searching YouTube Music:', error)
+    res.status(500).json({ error: 'Failed to search YouTube Music' })
   }
-});
+})
 
-export default router;
-
+export default router
 
