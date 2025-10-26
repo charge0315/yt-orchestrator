@@ -153,7 +153,13 @@ app.listen(PORT, async () => {
     console.warn('Skipping token preload:', e?.toString?.() || e)
   }
 
-  // バックグラウンドのキャッシュ更新ジョブを開始
-  startCacheUpdateJob()
+  // バックグラウンドのキャッシュ更新ジョブを開始（環境変数で制御）
+  // YouTube APIのクォータ節約のため、デフォルトは無効化
+  if (process.env.ENABLE_CACHE_UPDATE_JOB === 'true') {
+    startCacheUpdateJob()
+    console.log('✅ Background cache update job is ENABLED')
+  } else {
+    console.log('⚠️  Background cache update job is DISABLED (set ENABLE_CACHE_UPDATE_JOB=true to enable)')
+  }
 })
 
