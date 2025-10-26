@@ -1,8 +1,4 @@
-﻿/**
- * YouTube Orchestrator - 繝舌ャ繧ｯ繧ｨ繝ｳ繝峨し繝ｼ繝舌・
- * YouTube Data API v3縺ｨ騾｣謳ｺ縺励√・繝ｬ繧､繝ｪ繧ｹ繝育ｮ｡逅・ｄAI縺翫☆縺吶ａ讖溯・繧呈署萓・
- */
-import express from 'express';
+﻿import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
@@ -11,23 +7,20 @@ import session from 'express-session';
 import { connectDatabase } from './config/database.js';
 import { startCacheUpdateJob } from './jobs/updateCache.js';
 
-// 繝ｫ繝ｼ繝医・繧､繝ｳ繝昴・繝・
-import playlistRoutes from './routes/playlists2.js';
-import songRoutes from './routes/songs2.js';
-import artistRoutes from './routes/artists2.js';
-import channelRoutes from './routes/channels2.js';
-import recommendationRoutes from './routes/recommendations2.js';
+import playlistRoutes from './routes/playlists.js';
+import songRoutes from './routes/songs.js';
+import artistRoutes from './routes/artists.js';
+import channelRoutes from './routes/channels.js';
+import recommendationRoutes from './routes/recommendations.js';
 import authRoutes from './routes/auth.js';
-import youtubeRoutes from './routes/youtube2.js';
-import ytmusicRoutes from './routes/ytmusic2.js';
+import youtubeRoutes from './routes/youtube.js';
+import ytmusicRoutes from './routes/ytmusic.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// ES繝｢繧ｸ繝･繝ｼ繝ｫ縺ｧ__dirname繧貞叙蠕励☆繧九◆繧√・蜃ｦ逅・
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 環境変数の読み込み（バックエンド直下の .env）
 const ENV_PATH = path.resolve(__dirname, '../.env');
 const envResult = dotenv.config({ path: ENV_PATH, override: true });
 if (envResult.error) {
@@ -35,7 +28,6 @@ if (envResult.error) {
 } else {
 console.log('.env path:', ENV_PATH);
 }
-// 繝・ヰ繝・げ: 迺ｰ蠅・､画焚縺梧ｭ｣縺励￥隱ｭ縺ｿ霎ｼ縺ｾ繧後※縺・ｋ縺狗｢ｺ隱・
 console.log('Environment variables loaded:');
 console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set (' + process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...)' : 'Missing');
 console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Missing');
@@ -45,9 +37,6 @@ console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// 繝溘ラ繝ｫ繧ｦ繧ｧ繧｢縺ｮ險ｭ螳・
-
-// CORS險ｭ螳・ 繝輔Ο繝ｳ繝医お繝ｳ繝峨°繧峨・繝ｪ繧ｯ繧ｨ繧ｹ繝医ｒ險ｱ蜿ｯ
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
@@ -62,7 +51,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // origin縺後↑縺・ｴ蜷医・險ｱ蜿ｯ・医Δ繝舌う繝ｫ繧｢繝励Μ繧・url縺ｪ縺ｩ・・
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -71,53 +59,50 @@ app.use(cors({
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true // Cookie縺ｮ騾∽ｿ｡繧定ｨｱ蜿ｯ
+  credentials: true
 }));
-app.use(express.json()); // JSON繝懊ョ繧｣縺ｮ繝代・繧ｹ
-app.use(cookieParser()); // Cookie 縺ｮ繝代・繧ｹ
+app.use(express.json());
+app.use(cookieParser());
 
-// 繧ｻ繝・す繝ｧ繝ｳ險ｭ螳・
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // 譛ｬ逡ｪ迺ｰ蠅・〒縺ｯHTTPS縺ｮ縺ｿ
-    httpOnly: true, // XSS謾ｻ謦・ｯｾ遲・
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30譌･髢・
+    secure: process.env.NODE_ENV === 'production', // HTTPSの場合はtrue
+    httpOnly: true, // XSS対策
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30日
   }
 }));
 
-// 繝ｫ繝ｼ繝医・逋ｻ骭ｲ
-// 隱崎ｨｼ繝ｫ繝ｼ繝・
+// ユーザー認証
+// セッションベースの認証
 app.use('/api/auth', authRoutes);
 
-// 蝓ｺ譛ｬ逧・↑繝ｪ繧ｽ繝ｼ繧ｹ繝ｫ繝ｼ繝・
+// プレイリスト関連
 app.use('/api/songs', songRoutes);
 app.use('/api/artists', artistRoutes);
 app.use('/api/channels', channelRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 
-
-
-// YouTube API騾｣謳ｺ繝ｫ繝ｼ繝・
+// YouTube API
 app.use('/api/youtube', youtubeRoutes);
 
-// YouTube Music API騾｣謳ｺ繝ｫ繝ｼ繝・
+// YouTube Music API
 app.use('/api/ytmusic', ytmusicRoutes);
 
-// 繝励Ξ繧､繝ｪ繧ｹ繝医Ν繝ｼ繝・
+// プレイリスト関連
 app.use('/api/playlists', playlistRoutes);
 
-// 繝倥Ν繧ｹ繝√ぉ繝・け繧ｨ繝ｳ繝峨・繧､繝ｳ繝・
+// ヘルスチェック
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'YouTube Orchestrator API is running' });
 });
 
 // サーバー起動
 app.listen(PORT, async () => {
-  console.log(`噫 Server is running on http://localhost:${PORT}`);
-  console.log(`笨・Session-based authentication enabled`);
+  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Session-based authentication enabled`);
 
     await connectDatabase();
 
@@ -137,7 +122,7 @@ app.listen(PORT, async () => {
         );
       }
     }
-    console.log(`笨・Preloaded tokens for ${users.length} users`);
+    console.log(`Preloaded tokens for ${users.length} users`);
   } catch (e) {
     console.warn('Skipping token preload:', e?.toString?.() || e);
   }
@@ -146,3 +131,158 @@ app.listen(PORT, async () => {
 });
 
 
+/**
+ * YouTube Orchestrator - バックエンドエントリポイント
+ *
+ * 概要:
+ * - 環境変数（.env）の読み込み
+ * - Express アプリの初期化（CORS/JSON/Cookie/セッション）
+ * - 各 API ルートの登録（認証・プレイリスト・アーティスト・チャンネル・検索など）
+ * - ヘルスチェックエンドポイント
+ * - データベース接続とトークンのプリロード
+ * - バックグラウンドジョブの起動
+ */
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
+
+// DB 接続およびキャッシュ更新ジョブ
+import { connectDatabase } from './config/database.js';
+import { startCacheUpdateJob } from './jobs/updateCache.js';
+
+// ルートのインポート
+import playlistRoutes from './routes/playlists.js';
+import songRoutes from './routes/songs.js';
+import artistRoutes from './routes/artists.js';
+import channelRoutes from './routes/channels.js';
+import recommendationRoutes from './routes/recommendations.js';
+import authRoutes from './routes/auth.js';
+import youtubeRoutes from './routes/youtube.js';
+import ytmusicRoutes from './routes/ytmusic.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// ESModule で __dirname を得るためのおまじない
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// .env の読み込み（ルート直下の .env を優先）
+const ENV_PATH = path.resolve(__dirname, '../.env');
+const envResult = dotenv.config({ path: ENV_PATH, override: true });
+if (envResult.error) {
+  console.error('dotenv load error:', envResult.error);
+} else {
+  console.log('.env path:', ENV_PATH);
+}
+
+// 簡易な環境変数の可視化（値そのものは出力しない）
+console.log('Environment variables loaded:');
+console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set (' + process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...)' : 'Missing');
+console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Missing');
+console.log('.env path:', ENV_PATH);
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+// フロントエンドの開発ポートと FRONTEND_URL を許可
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
+  'http://localhost:5177',
+  'http://localhost:5178',
+  'http://localhost:5179',
+  'http://localhost:5180',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+// CORS 設定（認証付き通信を許可）
+app.use(cors({
+  origin: (origin, callback) => {
+    // origin が空（同一オリジンやモバイルアプリなど）の場合は許可
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
+// JSON / Cookie 取り扱い
+app.use(express.json());
+app.use(cookieParser());
+
+// セッション設定（サーバー側ストアは既定、必要に応じて外部ストアに移行）
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production', // 本番では HTTPS のみ
+    httpOnly: true, // XSS 対策（JS から参照不可）
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 日
+  }
+}));
+
+// 認証関連（セッションベースの認証）
+app.use('/api/auth', authRoutes);
+
+// コンテンツ（プレイリスト・アーティスト・チャンネル・おすすめ）
+app.use('/api/songs', songRoutes);
+app.use('/api/artists', artistRoutes);
+app.use('/api/channels', channelRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+
+// YouTube API（動画向け）
+app.use('/api/youtube', youtubeRoutes);
+
+// YouTube Music API（音楽向け）
+app.use('/api/ytmusic', ytmusicRoutes);
+
+// プレイリスト
+app.use('/api/playlists', playlistRoutes);
+
+// ヘルスチェック
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', message: 'YouTube Orchestrator API is running' });
+});
+
+// サーバー起動
+app.listen(PORT, async () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`Session-based authentication enabled`);
+
+  // MongoDB へ接続
+  await connectDatabase();
+
+  // User コレクションから有効な YouTube アクセストークンをプリロード
+  try {
+    const { User } = await import('./models/User.js');
+    const { registerUserToken } = await import('./jobs/updateCache.js');
+    const now = new Date();
+    const users = await User.find({ youtubeAccessToken: { $exists: true, $ne: null } });
+    for (const u of users) {
+      if (!u.youtubeTokenExpiry || u.youtubeTokenExpiry > now) {
+        registerUserToken(
+          u.googleId,
+          u.youtubeAccessToken as string,
+          u.youtubeRefreshToken as string | undefined,
+          u.youtubeTokenExpiry
+        );
+      }
+    }
+    console.log(`Preloaded tokens for ${users.length} users`);
+  } catch (e) {
+    console.warn('Skipping token preload:', e?.toString?.() || e);
+  }
+
+  // バックグラウンドのキャッシュ更新ジョブを開始
+  startCacheUpdateJob();
+});
