@@ -53,24 +53,6 @@ function Layout({ children }: LayoutProps) {
           </Link>
 
           <div className="nav-section">
-            <div className="section-title">YouTube Music</div>
-            <Link
-              to="/playlists"
-              className={isActive('/playlists') ? 'nav-link active' : 'nav-link'}
-              onClick={closeSidebar}
-            >
-              🎵 プレイリスト
-            </Link>
-            <Link
-              to="/artists"
-              className={isActive('/artists') ? 'nav-link active' : 'nav-link'}
-              onClick={closeSidebar}
-            >
-              🎤 アーティスト
-            </Link>
-          </div>
-
-          <div className="nav-section">
             <div className="section-title">YouTube</div>
             <Link
               to="/youtube/playlists"
@@ -85,6 +67,24 @@ function Layout({ children }: LayoutProps) {
               onClick={closeSidebar}
             >
               📺 チャンネル
+            </Link>
+          </div>
+
+          <div className="nav-section">
+            <div className="section-title">YouTube Music</div>
+            <Link
+              to="/playlists"
+              className={isActive('/playlists') ? 'nav-link active' : 'nav-link'}
+              onClick={closeSidebar}
+            >
+              🎵 プレイリスト
+            </Link>
+            <Link
+              to="/artists"
+              className={isActive('/artists') ? 'nav-link active' : 'nav-link'}
+              onClick={closeSidebar}
+            >
+              🎤 アーティスト
             </Link>
           </div>
 

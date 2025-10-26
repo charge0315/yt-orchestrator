@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { ytmusicApi, playlistsApi } from '../api/client'
+import { ytmusicApi, playlistsApi, artistsApi } from '../api/client'
 import { useState, useRef } from 'react'
 import './PlaylistsPage.css'
 

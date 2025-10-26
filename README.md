@@ -1,5 +1,12 @@
 # 🎵 YouTube Orchestrator
 
+### 2025-10-26 更新
+- バックエンド: 登録チャンネル／アーティスト／プレイリストを MongoDB から無条件で返却し、初期データがあれば必ず一覧に表示されるよう統一しました。
+- YouTube Music: `isMusicPlaylist` 判定をカテゴリ ID（Music = 10）の割合みに一本化し、同期・非同期の両ロジックで同じ基準を利用します。
+- CORS: `localhost`／`127.0.0.1` ドメインを自動許可するフォールバックを追加し、開発環境での疎通を安定化。
+- フロントエンド: サイドメニューを「YouTube → YouTube Music」の順に並べ替え、HomePage/PlaylistsPage のレスポンス整形を修正。
+- 型安全性: `packages/frontend/src/vite-env.d.ts` を追加し、`import.meta.env` 参照時の型エラーを解消。
+
 ### 2025-10-23 追加更新（UI/挙動の改善）
 - YouTube Music: プレイリストを音楽のみ返却（アルバム表示に整備）
 - アーティスト: キャッシュ未作成時でも購読チャンネルから自動判定し、最新動画を取得して表示

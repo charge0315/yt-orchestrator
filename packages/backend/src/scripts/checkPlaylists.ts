@@ -28,7 +28,7 @@ async function checkPlaylists() {
       // 全プレイリストの統計
       const totalPlaylists = await CachedPlaylist.countDocuments();
       const withThumbnail = await CachedPlaylist.countDocuments({
-        thumbnailUrl: { $exists: true, $ne: null, $ne: '' }
+        thumbnailUrl: { $exists: true, $nin: [null, ''] }
       });
 
       console.log('\n📊 Statistics:');

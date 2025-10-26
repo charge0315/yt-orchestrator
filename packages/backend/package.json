@@ -26,7 +26,8 @@
     "node-cron": "^3.0.3",
     "openai": "^4.24.1",
     "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0"
+    "passport-google-oauth20": "^2.0.0",
+    "yt-orchestrator": "file:../.."
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.9",

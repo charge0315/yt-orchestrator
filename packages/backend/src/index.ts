@@ -28,6 +28,7 @@ import recommendationRoutes from './routes/recommendations.js'
 import authRoutes from './routes/auth.js'
 import youtubeRoutes from './routes/youtube.js'
 import ytmusicRoutes from './routes/ytmusic.js'
+import { seedInitialData } from './utils/seedData.js'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -67,13 +68,15 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[]
 
+const isLocalhost = (url: string) => /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(url)
+
 // CORS 設定（認証付き通信を許可）
 app.use(
   cors({
     origin: (origin, callback) => {
       // origin が空（同一オリジンやモバイルアプリなど）の場合は許可
       if (!origin) return callback(null, true)
-      if (allowedOrigins.indexOf(origin) !== -1) {
+      if (allowedOrigins.indexOf(origin) !== -1 || isLocalhost(origin)) {
         callback(null, true)
       } else {
         callback(new Error('Not allowed by CORS'))
@@ -131,6 +134,11 @@ app.listen(PORT, async () => {
 
   // MongoDB へ接続
   await connectDatabase()
+  try {
+    await seedInitialData()
+  } catch (seedError) {
+    console.warn('Skipping initial data seed:', seedError instanceof Error ? seedError.message : seedError)
+  }
 
   // User コレクションから有効な YouTube アクセストークンをプリロード
   try {
@@ -162,4 +170,3 @@ app.listen(PORT, async () => {
     console.log('⚠️  Background cache update job is DISABLED (set ENABLE_CACHE_UPDATE_JOB=true to enable)')
   }
 })
-

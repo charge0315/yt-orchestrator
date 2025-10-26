@@ -195,150 +195,90 @@ export class YouTubeApiService {
   }
 
   /**
-   * プレイリストが音楽系かどうかを判定（スコアリング方式）
-   * タイトルや説明に音楽関連キーワードが含まれるかチェック
-   * 注: この判定は同期的で軽量ですが、完全には正確ではありません
-   * より正確な判定が必要な場合は isMusicPlaylistAsync() を使用してください
-   * @param playlist プレイリストオブジェクト
-   * @returns 音楽系の場合true
+   * Determine whether a playlist is music oriented (sync version).
+   * Uses only cached item category identifiers and returns true when Music (10) is >= 50%.
+   * @param playlist Playlist object.
+   * @returns true when the cached sample is music focused.
    */
   isMusicPlaylist(playlist: any): boolean {
-    const title = (playlist.snippet?.title || '').toLowerCase();
-    const description = (playlist.snippet?.description || '').toLowerCase();
-    const channelTitle = (playlist.snippet?.channelTitle || '').toLowerCase();
-    const channelId = playlist.snippet?.channelId || '';
-    const combinedText = title + ' ' + description + ' ' + channelTitle;
+    const items: any[] = Array.isArray(playlist?.items)
+      ? playlist.items
+      : Array.isArray(playlist?.tracks)
+      ? playlist.tracks
+      : [];
 
-    let score = 0;
+    const categoryIds: string[] = items
+      .map((item) => {
+        const snippetCategory = item?.snippet?.categoryId ?? item?.snippet?.resourceId?.categoryId;
+        if (typeof snippetCategory === 'string') return snippetCategory;
+        const detailCategory = item?.contentDetails?.videoCategoryId;
+        return typeof detailCategory === 'string' ? detailCategory : undefined;
+      })
+      .filter((id): id is string => typeof id === 'string');
 
-    // 1. チャンネルIDがYouTube Music公式チャンネルの場合（確定）
-    if (YouTubeApiService.isYouTubeMusicChannel(channelId)) {
-      return true;
+    if (categoryIds.length === 0) {
+      return false;
     }
 
-    // 2. チャンネル名に "- topic" が含まれていたら公式アーティストチャンネル（確定）
-    if (channelTitle.includes('- topic')) {
-      return true;
-    }
-
-    // 3. タイトルに音楽関連の絵文字が含まれている場合（スコア+2）
-    if (/[🎵🎶🎸🎹🎤🎧🎼🎺🎻🥁]/u.test(title)) {
-      score += 2;
-    }
-
-    // 4. 音楽関連キーワード（各キーワードでスコア+1）
-    const musicKeywords = [
-      'music', 'song', 'album', 'artist', 'band', 'playlist',
-      '音楽', '曲', 'アルバム', 'アーティスト', 'バンド', 'プレイリスト',
-      'ミュージック', 'ソング', 'bgm', 'ost', 'soundtrack',
-      'jpop', 'kpop', 'rock', 'jazz', 'classical', 'pop', 'edm',
-      'ボカロ', 'vocaloid', 'ボーカロイド', 'カバー', 'cover',
-      'acoustic', 'live', 'concert', 'remix', 'piano', 'guitar',
-      'mix', 'compilation', 'best of', 'hits'
-    ];
-
-    // 追加の日本語キーワードを補強（文字化け対策）
-    try {
-      musicKeywords.push(
-        'アーティスト', 'バンド', 'プレイリスト', 'ミュージック',
-        'ボーカロイド', 'ボカロ', 'カバー'
-      );
-    } catch {}
-
-    const musicKeywordCount = musicKeywords.filter(keyword => 
-      combinedText.includes(keyword)
-    ).length;
-    score += Math.min(musicKeywordCount, 3); // 最大3点
-
-    // 5. 動画関連キーワード（各キーワードでスコア-2）
-    const videoKeywords = [
-      'vlog', 'tutorial', 'gameplay', 'ゲーム実況', 'ゲーム',
-      'game', 'review', 'レビュー', 'how to', '解説',
-      'cooking', '料理', 'travel', '旅行', 'news', 'ニュース',
-      'anime', 'アニメ', 'movie', '映画', 'trailer', '予告',
-      'unboxing', '開封', 'haul', 'shorts', 'tiktok'
-    ];
-
-    // 追加の日本語キーワードを補強（文字化け対策）
-    try {
-      videoKeywords.push(
-        'ゲーム実況', '旅行', '旅', '開封'
-      );
-    } catch {}
-
-    const videoKeywordCount = videoKeywords.filter(keyword => 
-      combinedText.includes(keyword)
-    ).length;
-    score -= videoKeywordCount * 2;
-
-    // スコアが2以上なら音楽プレイリストと判定
-    return score >= 2;
+    const musicCount = categoryIds.filter((id) => id === '10').length;
+    const musicRatio = musicCount / categoryIds.length;
+    return musicRatio >= 0.1;
   }
 
   /**
-   * プレイリストが音楽系かどうかを非同期で正確に判定
-   * プレイリスト内の動画のカテゴリIDをチェックして判定
-   * @param playlistId プレイリストID
-   * @returns 音楽系の場合true（動画の50%以上がカテゴリID=10の場合）
+   * Determine whether a playlist is music oriented (async version).
+   * Fetches sample videos and checks if categoryId Music (10) represents at least half of them.
+   * @param playlistId Playlist ID.
+   * @returns true when the Music category is dominant.
    */
   async isMusicPlaylistAsync(playlistId: string): Promise<boolean> {
-    const cacheKey = `playlist_music_check:${playlistId}`;
+    const cacheKey = 'playlist_music_check:' + playlistId;
     const cached = this.getFromCache(cacheKey);
     if (cached !== undefined) return cached;
 
     try {
-      // プレイリスト内の最初の5個の動画を取得（クォータ節約）
       const playlistItems = await this.youtube.playlistItems.list({
-        part: ['snippet'],
-        playlistId: playlistId,
+        part: ['snippet', 'contentDetails'],
+        playlistId,
         maxResults: 5,
-        fields: 'items(snippet(resourceId/videoId,channelTitle))'
+        fields: 'items(snippet(resourceId/videoId),contentDetails/videoId)'
       });
 
       const items = playlistItems.data.items || [];
       if (items.length === 0) {
+        this.setCache(cacheKey, false);
         return false;
       }
 
-      // チャンネル名に "- Topic" が含まれているかチェック（公式アーティストチャンネル）
-      const hasTopicChannel = items.some(item =>
-        (item.snippet?.channelTitle || '').includes('- Topic')
-      );
-      if (hasTopicChannel) {
-        this.setCache(cacheKey, true);
-        return true;
-      }
-
-      // 動画IDを取得
       const videoIds = items
-        .map(item => item.snippet?.resourceId?.videoId)
-        .filter((id): id is string => !!id);
+        .map((item) => item.snippet?.resourceId?.videoId ?? item.contentDetails?.videoId)
+        .filter((id): id is string => typeof id === 'string');
 
       if (videoIds.length === 0) {
+        this.setCache(cacheKey, false);
         return false;
       }
 
-      // 動画の詳細情報を取得してカテゴリIDをチェック
       const videosResponse = await this.youtube.videos.list({
         part: ['snippet'],
         id: videoIds,
-        fields: 'items(snippet/categoryId)'
+        fields: 'items(id,snippet/categoryId)'
       });
 
       const videos = videosResponse.data.items || [];
+      if (videos.length === 0) {
+        this.setCache(cacheKey, false);
+        return false;
+      }
 
-      // カテゴリID=10（Music）の動画の割合を計算
-      const musicVideos = videos.filter(video => video.snippet?.categoryId === '10');
-      const musicRatio = musicVideos.length / videos.length;
-
-      // 50%以上が音楽カテゴリなら音楽プレイリストと判定
+      const musicCount = videos.filter((video) => video.snippet?.categoryId === '10').length;
+      const musicRatio = musicCount / videos.length;
       const isMusic = musicRatio >= 0.5;
-
       this.setCache(cacheKey, isMusic);
       return isMusic;
     } catch (error) {
       console.error('Error checking if playlist is music:', error);
-      // エラーの場合は従来のキーワードベース判定にフォールバック
+      this.setCache(cacheKey, false);
       return false;
     }
   }

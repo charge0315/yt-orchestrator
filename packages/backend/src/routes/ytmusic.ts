@@ -33,50 +33,7 @@ router.get('/auth/status', authenticate, async (_req: AuthRequest, res: Response
  */
 router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) => {
   try {
-    const force = (req.query.force as string | undefined) === '1' || (req.query.refresh as string | undefined) === '1'
-
-    if (force && (await acquireYouTubeDaily(req.userId))) {
-      try {
-        const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
-        const result = await yt.getPlaylists()
-        const musicOnly = (result.items || []).filter((pl: any) => yt.isMusicPlaylist(pl))
-
-        // キャッシュ更新（次回通常アクセスで反映）
-        try {
-          if (mongoose.connection.readyState === 1 && musicOnly.length > 0) {
-            const bulkOps = musicOnly.map((pl: any) => ({
-              updateOne: {
-                filter: { userId: req.userId, playlistId: pl.id },
-                update: {
-                  title: pl.snippet?.title,
-                  description: pl.snippet?.description,
-                  thumbnailUrl:
-                    pl.snippet?.thumbnails?.high?.url ||
-                    pl.snippet?.thumbnails?.medium?.url ||
-                    pl.snippet?.thumbnails?.default?.url,
-                  itemCount: pl.contentDetails?.itemCount,
-                  channelId: pl.snippet?.channelId,
-                  channelTitle: pl.snippet?.channelTitle,
-                  privacy: pl.status?.privacyStatus,
-                  isMusicPlaylist: true,
-                  etag: pl.etag,
-                  cachedAt: new Date(),
-                },
-                upsert: true,
-              },
-            }))
-            await CachedPlaylist.bulkWrite(bulkOps)
-          }
-        } catch {}
-
-        return res.json({ items: musicOnly, nextPageToken: result.nextPageToken })
-      } catch (e) {
-        console.error('Force fetch YT Music playlists failed:', e)
-        return res.json({ items: [], nextPageToken: undefined })
-      }
-    }
-
-    // キャッシュ優先で返却
+    // MongoDBキャッシュのみで返却
     if (mongoose.connection.readyState === 1) {
       const cachedPlaylists = await CachedPlaylist.find({ userId: req.userId, isMusicPlaylist: true })
       if (cachedPlaylists.length > 0) {
@@ -175,4 +132,3 @@ router.get('/search', authenticate, async (req: AuthRequest, res: Response) => {
 })
 
 export default router
-

@@ -8,8 +8,8 @@ import express, { Response } from 'express'
 import { authenticate, AuthRequest } from '../middleware/auth.js'
 import { YouTubeApiService } from '../services/youtubeApi.js'
 import { CachedPlaylist } from '../models/CachedPlaylist.js'
+import { Playlist } from '../models/Playlist.js'
 import mongoose from 'mongoose'
-import { acquireYouTubeDaily } from '../utils/dailyGate.js'
 
 const router = express.Router()
 
@@ -37,139 +37,39 @@ router.delete('/cache', async (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/playlists
- * プレイリスト一覧を返却（キャッシュ優先、必要時のみAPI）
- * クエリ: type=video|music|all, pageToken
+ * プレイリスト一覧を返却（MongoDBの内容をそのまま提供）
  */
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
-    const { pageToken } = req.query
-    const type = (req.query.type as string | undefined)?.toLowerCase() as 'video' | 'music' | 'all' | undefined
-    const desiredType: 'video' | 'music' | 'all' = type === 'music' || type === 'all' ? type : 'video'
-    const CACHE_DURATION_MS = 24 * 60 * 60 * 1000
-
-    // ページネーションはAPI直呼び出し（当日枠が必要）
-    if (pageToken) {
-      const allowed = await acquireYouTubeDaily(req.userId)
-      if (!allowed) return res.json({ items: [], nextPageToken: undefined })
-      const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
-      const result = await yt.getPlaylists(pageToken as string)
-      const classified = result.items.map((pl: any) => ({ ...pl, isMusicPlaylist: yt.isMusicPlaylist(pl) }))
-      const filtered = desiredType === 'all' ? classified : classified.filter((pl: any) => (desiredType === 'music' ? pl.isMusicPlaylist : !pl.isMusicPlaylist))
-      return res.json({ items: filtered, nextPageToken: result.nextPageToken })
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ items: [], nextPageToken: undefined });
     }
 
-    // 1) MongoDB キャッシュ
-    let cachedPlaylists: any[] = []
-    if (mongoose.connection.readyState === 1) {
-      cachedPlaylists = await CachedPlaylist.find({ userId: req.userId })
-      if (cachedPlaylists.length > 0) {
-        const oldest = cachedPlaylists.reduce((a, b) => (a.cachedAt < b.cachedAt ? a : b))
-        const cacheAge = Date.now() - oldest.cachedAt.getTime()
-        if (cacheAge < CACHE_DURATION_MS) {
-          const filteredCached = desiredType === 'all' ? cachedPlaylists : cachedPlaylists.filter((pl) => (desiredType === 'music' ? !!pl.isMusicPlaylist : !pl.isMusicPlaylist))
-          const formatted = filteredCached.map((pl) => ({
-            kind: 'youtube#playlist',
-            id: pl.playlistId,
-            snippet: {
-              title: pl.title,
-              description: pl.description,
-              thumbnails: {
-                default: { url: pl.thumbnailUrl },
-                medium: { url: pl.thumbnailUrl },
-                high: { url: pl.thumbnailUrl },
-              },
-              channelId: pl.channelId,
-              channelTitle: pl.channelTitle,
-            },
-            contentDetails: { itemCount: pl.itemCount },
-            status: { privacyStatus: pl.privacy },
-            isMusicPlaylist: pl.isMusicPlaylist === true,
-          }))
-          return res.json({ items: formatted, nextPageToken: undefined })
-        }
-      }
-    }
+    const cachedPlaylists = await CachedPlaylist.find({ userId: req.userId }).sort({ cachedAt: -1 }).lean();
+    const formatted = cachedPlaylists.map((pl) => ({
+      kind: 'youtube#playlist',
+      id: pl.playlistId,
+      snippet: {
+        title: pl.title,
+        description: pl.description,
+        thumbnails: {
+          default: { url: pl.thumbnailUrl },
+          medium: { url: pl.thumbnailUrl },
+          high: { url: pl.thumbnailUrl },
+        },
+        channelId: pl.channelId,
+        channelTitle: pl.channelTitle,
+      },
+      contentDetails: { itemCount: pl.itemCount },
+      status: { privacyStatus: pl.privacy },
+      isMusicPlaylist: pl.isMusicPlaylist === true,
+    }));
 
-    // 2) 日次制限（当日枠がなければキャッシュ返却 or 空）
-    {
-      const allowed = await acquireYouTubeDaily(req.userId)
-      if (!allowed) {
-        if (cachedPlaylists.length > 0) {
-          const filteredCached = desiredType === 'all' ? cachedPlaylists : cachedPlaylists.filter((pl) => (desiredType === 'music' ? !!pl.isMusicPlaylist : !pl.isMusicPlaylist))
-          const formatted = filteredCached.map((pl) => ({
-            kind: 'youtube#playlist',
-            id: pl.playlistId,
-            snippet: {
-              title: pl.title,
-              description: pl.description,
-              thumbnails: {
-                default: { url: pl.thumbnailUrl },
-                medium: { url: pl.thumbnailUrl },
-                high: { url: pl.thumbnailUrl },
-              },
-              channelId: pl.channelId,
-              channelTitle: pl.channelTitle,
-            },
-            contentDetails: { itemCount: pl.itemCount },
-            status: { privacyStatus: pl.privacy },
-            isMusicPlaylist: pl.isMusicPlaylist === true,
-          }))
-          return res.json({ items: formatted, nextPageToken: undefined })
-        }
-        return res.json({ items: [], nextPageToken: undefined })
-      }
-    }
-
-    // 3) YouTube API から取得（差分更新: ETag）
-    const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
-    let playlistsWithType: any[] = []
-    if (cachedPlaylists.length > 0) {
-      console.log('🔄 Using ETag-based incremental update for playlists')
-      const cachedEtag = cachedPlaylists[0]?.etag
-      const result = await yt.getPlaylists(undefined, cachedEtag)
-      playlistsWithType = (result.items || []).map((pl: any) => ({ ...pl, isMusicPlaylist: yt.isMusicPlaylist(pl) }))
-    } else {
-      console.log('📥 Using full fetch mode for playlists')
-      const playlistsResult = await yt.getPlaylists()
-      playlistsWithType = (playlistsResult.items || []).map((pl: any) => ({ ...pl, isMusicPlaylist: yt.isMusicPlaylist(pl) }))
-    }
-
-    // 4) MongoDB に保存
-    if (mongoose.connection.readyState === 1 && playlistsWithType.length > 0) {
-      try {
-        const bulkOps = playlistsWithType.map((pl: any) => ({
-          updateOne: {
-            filter: { userId: req.userId, playlistId: pl.id },
-            update: {
-              title: pl.snippet?.title,
-              description: pl.snippet?.description,
-              thumbnailUrl:
-                pl.snippet?.thumbnails?.high?.url || pl.snippet?.thumbnails?.medium?.url || pl.snippet?.thumbnails?.default?.url,
-              itemCount: pl.contentDetails?.itemCount,
-              channelId: pl.snippet?.channelId,
-              channelTitle: pl.snippet?.channelTitle,
-              privacy: pl.status?.privacyStatus,
-              isMusicPlaylist: !!pl.isMusicPlaylist,
-              etag: pl.etag,
-              cachedAt: new Date(),
-            },
-            upsert: true,
-          },
-        }))
-        await CachedPlaylist.bulkWrite(bulkOps)
-        console.log(`✅ Saved ${playlistsWithType.length} playlists to MongoDB cache`)
-      } catch (dbError) {
-        console.error('Failed to save playlists to MongoDB:', dbError)
-      }
-    }
-
-    const responseItems = desiredType === 'all' ? playlistsWithType : playlistsWithType.filter((pl: any) => (desiredType === 'music' ? pl.isMusicPlaylist : !pl.isMusicPlaylist))
-    res.json({ items: responseItems, nextPageToken: undefined })
+    return res.json({ items: formatted, nextPageToken: undefined });
   } catch (error) {
-    console.error('Error fetching playlists:', error)
-    res.json({ items: [], nextPageToken: undefined })
+    res.status(500).json({ error: 'Failed to fetch playlists' });
   }
-})
+});
 
 /**
  * GET /api/playlists/:id
@@ -177,10 +77,45 @@ router.get('/', async (req: AuthRequest, res: Response) => {
  */
 router.get('/:id', async (req: AuthRequest, res: Response) => {
   try {
-    const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
-    const playlist = await yt.getPlaylist(req.params.id)
-    if (!playlist) return res.status(404).json({ error: 'Playlist not found' })
-    res.json(playlist)
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' })
+    }
+
+    const playlist = await Playlist.findOne({ userId: req.userId, playlistId: req.params.id }).lean()
+    const cachedSummary = await CachedPlaylist.findOne({ userId: req.userId, playlistId: req.params.id }).lean()
+
+    if (!playlist && !cachedSummary) {
+      return res.status(404).json({ error: 'Playlist not found' })
+    }
+
+    const songs = (playlist?.items || []).map((item: any) => ({
+      videoId: item.videoId,
+      title: item.title,
+      artist: (item as any).artist || cachedSummary?.channelTitle || '',
+      thumbnail: item.thumbnail,
+      addedAt: item.addedAt,
+      position: item.position,
+    }))
+
+    const updatedAt =
+      (playlist as any)?.updatedAt ||
+      (cachedSummary as any)?.updatedAt ||
+      cachedSummary?.cachedAt;
+
+    const responseBody = {
+      id: playlist?.playlistId || cachedSummary?.playlistId || req.params.id,
+      playlistId: playlist?.playlistId || cachedSummary?.playlistId || req.params.id,
+      name: playlist?.title || cachedSummary?.title || '',
+      description: playlist?.description || cachedSummary?.description || '',
+      thumbnail: playlist?.thumbnail || cachedSummary?.thumbnailUrl,
+      itemCount: playlist?.itemCount || cachedSummary?.itemCount || songs.length,
+      songs,
+      channelId: cachedSummary?.channelId,
+      channelTitle: cachedSummary?.channelTitle,
+      updatedAt,
+    }
+
+    res.json(responseBody)
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch playlist' })
   }
@@ -283,17 +218,57 @@ router.delete('/:id/songs/:playlistItemId', async (req: AuthRequest, res: Respon
  */
 router.get('/:id/export', async (req: AuthRequest, res: Response) => {
   try {
-    const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
-    const playlist = await yt.getPlaylist(req.params.id)
-    if (!playlist) return res.status(404).json({ error: 'Playlist not found' })
-    const itemsResult = await yt.getPlaylistItems(req.params.id)
-    const exportData = {
-      id: playlist.id,
-      snippet: playlist.snippet,
-      contentDetails: playlist.contentDetails,
-      items: itemsResult.items,
-      exportedAt: new Date().toISOString(),
+    if (mongoose.connection.readyState !== 1) {
+      return res.status(503).json({ error: 'MongoDB not connected' })
     }
+
+    const playlist = await Playlist.findOne({ userId: req.userId, playlistId: req.params.id }).lean()
+    const cached = await CachedPlaylist.findOne({ userId: req.userId, playlistId: req.params.id }).lean()
+
+    if (!playlist && !cached) {
+      return res.status(404).json({ error: 'Playlist not found' })
+    }
+
+    const items = (playlist?.items || []).map((item: any) => ({
+      id: item.videoId,
+      snippet: {
+        resourceId: { videoId: item.videoId },
+        title: item.title,
+        description: '',
+        thumbnails: {
+          default: { url: item.thumbnail },
+          medium: { url: item.thumbnail },
+          high: { url: item.thumbnail },
+        },
+        position: item.position,
+        publishedAt: item.addedAt,
+      },
+      contentDetails: {
+        videoId: item.videoId,
+      },
+    }))
+
+    const exportData = {
+      id: playlist?.playlistId || cached?.playlistId || req.params.id,
+      snippet: {
+        title: playlist?.title || cached?.title || '',
+        description: playlist?.description || cached?.description || '',
+        thumbnails: {
+          default: { url: playlist?.thumbnail || cached?.thumbnailUrl },
+          medium: { url: playlist?.thumbnail || cached?.thumbnailUrl },
+          high: { url: playlist?.thumbnail || cached?.thumbnailUrl },
+        },
+        channelId: cached?.channelId,
+        channelTitle: cached?.channelTitle,
+      },
+      contentDetails: {
+        itemCount: playlist?.itemCount || cached?.itemCount || items.length,
+      },
+      items,
+      exportedAt: new Date().toISOString(),
+      source: 'mongo',
+    }
+
     res.json(exportData)
   } catch (error) {
     res.status(500).json({ error: 'Failed to export playlist' })
@@ -301,4 +276,3 @@ router.get('/:id/export', async (req: AuthRequest, res: Response) => {
 })
 
 export default router
-

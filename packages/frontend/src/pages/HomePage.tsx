@@ -7,15 +7,12 @@
  * - AIおすすめセクション
  */
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { channelsApi, playlistsApi, artistsApi, ytmusicApi, youtubeDataApi, recommendationsApi } from '../api/client'
 import SkeletonLoader from '../components/SkeletonLoader'
 import VideoPlayer from '../components/VideoPlayer'
 import './HomePage.css'
 
 function HomePage() {
-  const navigate = useNavigate()
-
   // 各種データの状態管理
   const [channels, setChannels] = useState<any[]>([]) // YouTubeチャンネル
   const [playlists, setPlaylists] = useState<any[]>([]) // YouTube再生リスト
@@ -61,8 +58,8 @@ function HomePage() {
           if (err.response?.status === 401 || err.response?.status === 500) setIsAuthenticated(false)
           return { data: [] }
         }),
-        playlistsApi.getAll().catch((err) => { return { data: [] } }),
-        artistsApi.getAll().catch((err) => { return { data: [] } })
+        playlistsApi.getAll().catch(() => ({ data: [] })),
+        artistsApi.getAll().catch(() => ({ data: [] }))
       ])
 
       // データが1つでも存在すれば認証済みと判定
@@ -72,7 +69,7 @@ function HomePage() {
 
       setChannels(Array.isArray(channelsRes.data) ? channelsRes.data : [])
       // YouTube APIレスポンスの形式を処理（{ items: [...], nextPageToken } または [...] の両方に対応）
-      const playlistData = playlistsRes.data?.items || playlistsRes.data
+      const playlistData = (playlistsRes.data as any)?.items ?? playlistsRes.data
       setPlaylists(Array.isArray(playlistData) ? playlistData : [])
       setArtists(Array.isArray(artistsRes.data) ? artistsRes.data : [])
 
@@ -80,7 +77,7 @@ function HomePage() {
       try {
         const ytmRes = await ytmusicApi.getPlaylists()
         // YouTube APIレスポンスの形式を処理（{ items: [...], nextPageToken } または [...] の両方に対応）
-        const ytmData = ytmRes.data?.items || ytmRes.data
+        const ytmData = (ytmRes.data as any)?.items ?? ytmRes.data
         setYtmPlaylists(Array.isArray(ytmData) ? ytmData : [])
         console.log('YouTube Music playlists loaded:', ytmData?.length || 0)
       } catch (error) {

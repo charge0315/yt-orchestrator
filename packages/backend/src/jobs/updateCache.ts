@@ -194,14 +194,11 @@ async function updateChannelCache(userId: string, accessToken: string) {
         // 差分取得：publishedAfterを使用（YouTube Data API search.list）
         const newVideos = await ytService.getChannelVideosIncremental(channel.channelId, lastPublishedAt, 5);
 
-        // アーティスト判定（- Topic / 既知ID / 動画カテゴリID=10の割合）
-        let isArtist = (channel.channelTitle || '').toLowerCase().includes('- topic') ||
-                       YouTubeApiService.isYouTubeMusicChannel(channel.channelId);
-        if (!isArtist) {
-          try {
-            isArtist = await ytService.isMusicChannelAsync(channel.channelId, 5);
-          } catch {}
-        }
+        // アーティスト判定（動画カテゴリID=10の割合のみで判定）
+        let isArtist = false;
+        try {
+          isArtist = await ytService.isMusicChannelAsync(channel.channelId, 5);
+        } catch {}
 
         if (newVideos.length > 0) {
           const latestVideo = newVideos[0];

@@ -6,6 +6,8 @@
 import express, { Response } from 'express'
 import { authenticate, AuthRequest } from '../middleware/auth.js'
 import { YouTubeApiService } from '../services/youtubeApi.js'
+import mongoose from 'mongoose'
+import { CachedPlaylist } from '../models/CachedPlaylist.js'
 
 const router = express.Router()
 
@@ -19,19 +21,29 @@ router.use(authenticate)
  */
 router.get('/playlists', async (req: AuthRequest, res: Response) => {
   try {
-    const { pageToken } = req.query
-    const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
-    const result = await yt.getPlaylists(pageToken as string | undefined)
-
-    // 各プレイリストを非同期で音楽判定（並列）
-    const playlistChecks = await Promise.all(
-      result.items.map(async (playlist: any) => ({ playlist, isMusic: await yt.isMusicPlaylistAsync(playlist.id) }))
-    )
-
-    // 音楽プレイリストを除外（動画プレイリストのみ）
-    const videoPlaylists = playlistChecks.filter(({ isMusic }) => !isMusic).map(({ playlist }) => playlist)
-
-    res.json({ items: videoPlaylists, nextPageToken: result.nextPageToken })
+    // MongoDBキャッシュのみから動画向けプレイリストを返却（isMusicPlaylist=false）
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ items: [], nextPageToken: undefined })
+    }
+    const cached = await CachedPlaylist.find({ userId: req.userId, isMusicPlaylist: { $ne: true } }).sort({ cachedAt: -1 })
+    const formatted = cached.map((pl) => ({
+      kind: 'youtube#playlist',
+      id: pl.playlistId,
+      snippet: {
+        title: pl.title,
+        description: pl.description,
+        thumbnails: {
+          default: { url: pl.thumbnailUrl },
+          medium: { url: pl.thumbnailUrl },
+          high: { url: pl.thumbnailUrl },
+        },
+        channelId: pl.channelId,
+        channelTitle: pl.channelTitle,
+      },
+      contentDetails: { itemCount: pl.itemCount },
+      status: { privacyStatus: pl.privacy },
+    }))
+    res.json({ items: formatted, nextPageToken: undefined })
   } catch (error) {
     console.error('Error fetching YouTube playlists:', error)
     res.json({ items: [], nextPageToken: undefined })
@@ -58,4 +70,3 @@ router.get('/search', async (req: AuthRequest, res: Response) => {
 })
 
 export default router
-
