@@ -1,25 +1,65 @@
+# Auto-detect text files and normalize line endings to LF
 * text=auto
 
-# Use LF for source files across platforms
-*.js   text eol=lf
-*.ts   text eol=lf
-*.tsx  text eol=lf
-*.jsx  text eol=lf
-*.json text eol=lf
-*.md   text eol=lf
-*.css  text eol=lf
-*.scss text eol=lf
-*.env.example text eol=lf
-*.yml  text eol=lf
-*.yaml text eol=lf
+# Source code - always use LF
+*.js    text eol=lf
+*.jsx   text eol=lf
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.scss  text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.sh    text eol=lf
 
-# Keep images and archives as-is
-*.png  -text
-*.jpg  -text
-*.jpeg -text
-*.gif  -text
-*.svg  -text
-*.ico  -text
-*.zip  -text
-*.tar  -text
-*.gz   -text
+# Configuration files
+*.env.example text eol=lf
+.editorconfig text eol=lf
+.gitignore    text eol=lf
+.gitattributes text eol=lf
+
+# Python
+*.py    text eol=lf
+*.ipynb text eol=lf
+
+# Images - treat as binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.svg   binary
+*.ico   binary
+*.webp  binary
+
+# Archives - treat as binary
+*.zip   binary
+*.tar   binary
+*.gz    binary
+*.tgz   binary
+*.rar   binary
+*.7z    binary
+
+# Fonts - treat as binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
+
+# Media files - treat as binary
+*.mp3   binary
+*.mp4   binary
+*.avi   binary
+*.mov   binary
+*.wav   binary
+*.flac  binary
+
+# Documents - treat as binary
+*.pdf   binary
+*.doc   binary
+*.docx  binary
+*.xls   binary
+*.xlsx  binary
