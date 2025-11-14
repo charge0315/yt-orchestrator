@@ -18,8 +18,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       return res.json({ items: [], nextPageToken: undefined });
     }
 
-    // Find playlists that are not marked as music playlists
-    const cachedPlaylists = await CachedPlaylist.find({ userId: req.userId, isMusicPlaylist: { $ne: true } }).sort({ cachedAt: -1 }).lean();
+    const cachedPlaylists = await CachedPlaylist.find({ userId: req.userId }).sort({ cachedAt: -1 }).lean();
     
     const formatted = cachedPlaylists.map((pl) => ({
       kind: 'youtube#playlist',

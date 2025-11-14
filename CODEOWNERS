@@ -1,0 +1,55 @@
+# CODEOWNERS
+# This file defines individuals or teams responsible for code in this repository.
+# More info: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything in the repo
+# Unless a later match takes precedence, @charg will be requested for review
+* @charg
+
+# Frontend package (React + TypeScript)
+/packages/frontend/ @charg
+/packages/frontend/src/ @charg
+/packages/frontend/public/ @charg
+/packages/frontend/package.json @charg
+/packages/frontend/tsconfig.json @charg
+/packages/frontend/*.config.* @charg
+
+# Backend package (Express.js + MongoDB)
+/packages/backend/ @charg
+/packages/backend/src/ @charg
+/packages/backend/src/routes/ @charg
+/packages/backend/src/models/ @charg
+/packages/backend/src/middleware/ @charg
+/packages/backend/src/utils/ @charg
+/packages/backend/src/config/ @charg
+/packages/backend/package.json @charg
+
+# Root configuration files
+package.json @charg
+package-lock.json @charg
+tsconfig.json @charg
+tsconfig.*.json @charg
+
+# Documentation
+*.md @charg
+
+# Configuration files
+*.json @charg
+*.yml @charg
+*.yaml @charg
+.env.example @charg
+
+# GitHub Actions workflows
+/.github/workflows/ @charg
+
+# Testing
+/packages/*/tests/ @charg
+/packages/*/__tests__/ @charg
+*.test.ts @charg
+*.test.tsx @charg
+*.spec.ts @charg
+
+# Docker configuration
+Dockerfile @charg
+docker-compose.yml @charg
+.dockerignore @charg
