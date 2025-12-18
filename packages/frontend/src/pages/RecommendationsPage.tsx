@@ -1,3 +1,8 @@
+/**
+ * AIおすすめページ
+ * - バックエンドの recommendationsApi からおすすめ候補を取得
+ * - 推薦元チャンネル名で動画検索し、結果を表示
+ */
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { recommendationsApi, youtubeDataApi } from '../api/client'
@@ -14,15 +19,21 @@ function RecommendationsPage() {
     }
   })
 
+  /**
+   * 推薦されたチャンネル名（またはタイトル）で動画を検索します。
+   */
   const handleSearch = async (channelName: string) => {
     try {
       const response = await youtubeDataApi.searchVideos(channelName, 5)
       setSearchResults(response.data)
     } catch (error) {
-      console.error('Search failed:', error)
+      console.error('検索に失敗しました:', error)
     }
   }
 
+  /**
+   * YouTube を別タブで開いて再生します。
+   */
   const playVideo = (videoId: string) => {
     window.open(`https://www.youtube.com/watch?v=${videoId}`, '_blank')
   }

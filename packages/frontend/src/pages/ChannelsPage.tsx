@@ -1,3 +1,8 @@
+/**
+ * YouTube チャンネル管理ページ
+ * - YouTube Data API で検索し、チャンネルとして登録/解除
+ * - 登録済みチャンネルの最新動画を再生
+ */
 import { useState, useEffect } from 'react'
 import { youtubeDataApi, channelsApi } from '../api/client'
 import VideoPlayer from '../components/VideoPlayer'
@@ -16,6 +21,9 @@ function ChannelsPage() {
     loadChannels()
   }, [])
 
+  /**
+   * 登録済みチャンネル一覧を取得し、各チャンネルの最新動画も補完します。
+   */
   const loadChannels = async () => {
     try {
       const response = await channelsApi.getAll()
@@ -31,18 +39,21 @@ function ChannelsPage() {
             const videos = await youtubeDataApi.searchVideos(`channel:${channelId}`, 1)
             videosMap[channel.id] = Array.isArray(videos.data) ? videos.data : []
           } catch (error) {
-            console.error(`Failed to load videos for channel ${channelId}:`, error)
+            console.error(`チャンネル(${channelId})の動画取得に失敗しました:`, error)
           }
         }
       }
       setChannelVideos(videosMap)
     } catch (error) {
-      console.error('Failed to load channels:', error)
+      console.error('チャンネル一覧の読み込みに失敗しました:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
+  /**
+   * クエリで動画検索し、チャンネル単位にまとめて表示します。
+   */
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!searchQuery.trim()) return
@@ -63,31 +74,41 @@ function ChannelsPage() {
       }, [])
       setSearchResults(channels)
     } catch (error) {
-      console.error('Search failed:', error)
+      console.error('検索に失敗しました:', error)
     } finally {
       setIsSearching(false)
     }
   }
 
+  /**
+   * 検索結果のチャンネルを登録します。
+   */
   const handleSubscribe = async (channel: any) => {
     try {
       await channelsApi.subscribe({ channelId: channel.channelId || channel.videoId })
       await loadChannels()
       setSearchResults(prev => prev.filter(ch => ch.channelTitle !== channel.channelTitle))
     } catch (error) {
-      console.error('Failed to subscribe:', error)
+      console.error('登録に失敗しました:', error)
     }
   }
 
+  /**
+   * 登録済みチャンネルを解除します。
+   */
   const handleUnsubscribe = async (subscriptionId: string) => {
     try {
       await channelsApi.unsubscribe(subscriptionId)
       await loadChannels()
     } catch (error) {
-      console.error('Failed to unsubscribe:', error)
+      console.error('解除に失敗しました:', error)
     }
   }
 
+  /**
+   * チャンネルカードクリック時に最新動画を選択して再生します。
+   * バックエンド提供の latestVideoId を優先し、無い場合はフロント側検索結果でフォールバックします。
+   */
   const handleChannelClick = (channel: any) => {
     // バックエンドから提供される最新動画IDを優先的に使用
     if (channel.latestVideoId) {

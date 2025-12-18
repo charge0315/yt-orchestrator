@@ -1,6 +1,13 @@
+/**
+ * ログインページ
+ * - バックエンドの Google OAuth エンドポイントへリダイレクトして認証を開始します。
+ */
 import './LoginPage.css'
 
 function LoginPage() {
+  /**
+   * Google OAuth 認証を開始します。
+   */
   const handleGoogleLogin = () => {
     // バックエンドのOAuth認証エンドポイントにリダイレクト
     window.location.href = 'http://localhost:3001/api/auth/google'

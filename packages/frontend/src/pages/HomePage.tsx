@@ -79,9 +79,9 @@ function HomePage() {
         // YouTube APIレスポンスの形式を処理（{ items: [...], nextPageToken } または [...] の両方に対応）
         const ytmData = (ytmRes.data as any)?.items ?? ytmRes.data
         setYtmPlaylists(Array.isArray(ytmData) ? ytmData : [])
-        console.log('YouTube Music playlists loaded:', ytmData?.length || 0)
+        console.log('YouTube Music プレイリスト読み込み件数:', ytmData?.length || 0)
       } catch (error) {
-        console.error('Failed to load YouTube Music playlists:', error)
+        console.error('YouTube Music プレイリストの読み込みに失敗しました:', error)
         setYtmPlaylists([])
       }
 
@@ -91,7 +91,7 @@ function HomePage() {
       await loadLatestVideos([...channels, ...artists])
       await loadRecommendations()
     } catch (error) {
-      console.error('Failed to load data:', error)
+      console.error('データの読み込みに失敗しました:', error)
     }
   }
 
@@ -103,7 +103,7 @@ function HomePage() {
       const response = await recommendationsApi.get()
       setRecommendations(response.data || [])
     } catch (error) {
-      console.log('Recommendations error:', error)
+      console.log('おすすめ取得エラー:', error)
       setRecommendations([])
     } finally {
       setLoadingRecs(false)
@@ -144,7 +144,7 @@ function HomePage() {
       })
       setLatestVideoTitles(titleMap)
     } catch (error) {
-      console.log('Latest videos error:', error)
+      console.log('最新動画の取得エラー:', error)
       setLatestVideos([])
     } finally {
       setLoadingLatest(false)
@@ -186,7 +186,7 @@ function HomePage() {
         }
       }
     } catch (error) {
-      console.error('Failed to get latest video:', error)
+      console.error('最新動画の取得に失敗しました:', error)
     }
   }
 
@@ -215,7 +215,7 @@ function HomePage() {
    * 動画をプレイヤーで再生
    */
   const playVideo = (videoId: string) => {
-    console.log('▶️ Playing video:', videoId)
+    console.log('▶️ 再生開始（動画）:', videoId)
     setPlayingVideoId(videoId)
     setPlayingPlaylistId(null) // プレイリストをクリア
   }
@@ -224,7 +224,7 @@ function HomePage() {
    * プレイリストをプレイヤーで再生
    */
   const playPlaylist = (playlistId: string) => {
-    console.log('▶️ Playing playlist:', playlistId)
+    console.log('▶️ 再生開始（プレイリスト）:', playlistId)
     setPlayingPlaylistId(playlistId)
     setPlayingVideoId(null) // 単一動画IDをクリア
   }
@@ -323,7 +323,7 @@ function HomePage() {
                 if (pl.id) {
                   playPlaylist(pl.id)
                 } else {
-                  console.error('❌ No id in playlist:', pl)
+                  console.error('❌ プレイリストIDが見つかりません:', pl)
                 }
               }}>
                 {pl.snippet?.thumbnails?.default?.url && (
@@ -390,7 +390,7 @@ function HomePage() {
                 if (pl.id) {
                   playPlaylist(pl.id)
                 } else {
-                  console.error('❌ No id in YouTube Music playlist:', pl)
+                  console.error('❌ YouTube Music プレイリストIDが見つかりません:', pl)
                 }
               }}>
                 {(pl.snippet?.thumbnails?.default?.url || pl.thumbnail || pl.songs?.[0]?.thumbnail) && (
@@ -421,7 +421,7 @@ function HomePage() {
                   if (rec.videoId) {
                     playVideo(rec.videoId)
                   } else {
-                    console.error('❌ No videoId in recommendation:', rec)
+                    console.error('❌ おすすめのvideoIdが見つかりません:', rec)
                   }
                 }}
               >
@@ -452,7 +452,7 @@ function HomePage() {
                         e.stopPropagation()
                         artistsApi.subscribe({ channelId: rec.channelId })
                           .then(() => alert('チャンネルを登録しました'))
-                          .catch((err) => console.error('Subscribe failed:', err))
+                          .catch((err) => console.error('チャンネル登録に失敗しました:', err))
                       }}
                       style={{
                         marginTop: '8px',

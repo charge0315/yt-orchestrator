@@ -26,8 +26,8 @@ import authRoutes from './routes/auth.js'
 import youtubeRoutes from './routes/youtube.js'
 import ytmusicRoutes from './routes/ytmusic.js'
 import allPlaylistsRoutes from './routes/allPlaylists.js'
-import cachedChannelsRoutes from './routes/cachedChannels.js' // Renamed
-import cachedArtistsRoutes from './routes/cachedArtists.js' // Renamed
+import cachedChannelsRoutes from './routes/cachedChannels.js' // 旧: channelsRoutes（名称変更）
+import cachedArtistsRoutes from './routes/cachedArtists.js' // 旧: artistsRoutes（名称変更）
 import { seedInitialData } from './utils/seedData.js'
 import path from 'path'
 import { fileURLToPath } from 'url'

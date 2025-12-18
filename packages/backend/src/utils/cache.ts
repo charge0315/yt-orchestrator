@@ -54,5 +54,7 @@ class SimpleCache {
   }
 }
 
-// シングルトンインスタンスをエクスポート
+/**
+ * アプリ全体で共有するキャッシュ（シングルトン）
+ */
 export const cache = new SimpleCache();

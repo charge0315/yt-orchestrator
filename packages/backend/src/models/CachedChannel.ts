@@ -5,7 +5,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ICachedChannel extends Document {
-  userId: string; // Google ID
+  userId: string; // GoogleのユーザーID
   channelId: string;
   channelTitle: string;
   channelDescription?: string;
@@ -17,8 +17,8 @@ export interface ICachedChannel extends Document {
   latestVideoThumbnail?: string;
   latestVideoTitle?: string;
   latestVideoPublishedAt?: Date; // 最新動画の公開日時（差分更新用）
-  subscriptionId?: string; // YouTube subscription ID
-  etag?: string; // ETag for conditional requests（差分更新用）
+  subscriptionId?: string; // YouTubeの購読（Subscription）ID
+  etag?: string; // 条件付きリクエスト用のETag（差分更新用）
   isArtist?: boolean;
   cachedAt: Date;
   createdAt: Date;

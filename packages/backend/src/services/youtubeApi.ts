@@ -24,6 +24,10 @@ const YOUTUBE_MUSIC_CHANNEL_IDS = [
   'UCfM3zsQsOnfWNUppiycmBuw', // Music Lab
 ];
 
+/**
+ * YouTube Data API v3 へのアクセスを提供するサービス。
+ * アクセストークンを受け取り、プレイリスト/チャンネル/動画などの取得を行います。
+ */
 export class YouTubeApiService {
   private youtube: youtube_v3.Youtube;
 

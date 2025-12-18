@@ -1,3 +1,8 @@
+/**
+ * アーティスト（チャンネル）管理ページ
+ * - YouTube Data API で検索し、アーティスト（チャンネル）として登録/解除
+ * - 登録済みアーティストの最新動画を再生
+ */
 import { useState, useEffect } from 'react'
 import { youtubeDataApi, artistsApi } from '../api/client'
 import VideoPlayer from '../components/VideoPlayer'
@@ -15,17 +20,23 @@ function ArtistsPage() {
     loadArtists()
   }, [])
 
+  /**
+   * 登録済みアーティスト一覧を取得します。
+   */
   const loadArtists = async () => {
     try {
       const response = await artistsApi.getAll()
       setArtists(Array.isArray(response.data) ? response.data : [])
     } catch (error) {
-      console.error('Failed to load artists:', error)
+      console.error('アーティスト一覧の読み込みに失敗しました:', error)
     } finally {
       setIsLoading(false)
     }
   }
 
+  /**
+   * 入力されたクエリで動画検索し、チャンネル単位にまとめて表示します。
+   */
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!searchQuery.trim()) return
@@ -33,7 +44,7 @@ function ArtistsPage() {
     setIsSearching(true)
     try {
       const response = await youtubeDataApi.searchVideos(searchQuery, 10)
-      // Extract unique channels from search results
+      // 検索結果からチャンネルを重複排除して抽出
       const searchData = Array.isArray(response.data) ? response.data : []
       const channels = searchData.reduce((acc: any[], video: any) => {
         if (!acc.find(ch => ch.channelTitle === video.channelTitle)) {
@@ -47,31 +58,40 @@ function ArtistsPage() {
       }, [])
       setSearchResults(channels)
     } catch (error) {
-      console.error('Search failed:', error)
+      console.error('検索に失敗しました:', error)
     } finally {
       setIsSearching(false)
     }
   }
 
+  /**
+   * 検索結果のチャンネルを「アーティスト」として登録します。
+   */
   const handleSubscribe = async (channel: any) => {
     try {
       await artistsApi.subscribe({ channelId: channel.channelId || channel.videoId })
       await loadArtists()
       setSearchResults(prev => prev.filter(ch => ch.channelTitle !== channel.channelTitle))
     } catch (error) {
-      console.error('Failed to subscribe:', error)
+      console.error('登録に失敗しました:', error)
     }
   }
 
+  /**
+   * 登録済みアーティストを解除します。
+   */
   const handleUnsubscribe = async (subscriptionId: string) => {
     try {
       await artistsApi.unsubscribe(subscriptionId)
       await loadArtists()
     } catch (error) {
-      console.error('Failed to unsubscribe:', error)
+      console.error('解除に失敗しました:', error)
     }
   }
 
+  /**
+   * アーティストカードをクリックした際、最新動画を検索して再生します。
+   */
   const handleArtistClick = async (artist: any) => {
     try {
       const channelId = artist.snippet?.resourceId?.channelId || artist.id
@@ -83,7 +103,7 @@ function ArtistsPage() {
         }
       }
     } catch (error) {
-      console.error('Failed to get latest video:', error)
+      console.error('最新動画の取得に失敗しました:', error)
     }
   }
 

@@ -1,3 +1,10 @@
+/**
+ * ローカルにキャッシュされたプレイリスト（MongoDB経由）を1件表示する詳細ページ。
+ *
+ * - 取得: `playlistsApi.getById`
+ * - 再生: `VideoPlayer` をモーダル表示
+ * - 削除: `playlistsApi.removeSong` 後にクエリをinvalidate
+ */
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -5,6 +12,10 @@ import { playlistsApi } from '../api/client'
 import VideoPlayer from '../components/VideoPlayer'
 import './PlaylistDetailPage.css'
 
+/**
+ * プレイリスト詳細画面。
+ * URLパラメータ `id` を元に、曲一覧の表示と削除・再生を行う。
+ */
 function PlaylistDetailPage() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()

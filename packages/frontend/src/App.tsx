@@ -1,3 +1,7 @@
+/**
+ * フロントエンドのルーティング定義
+ * - 認証状態（useAuth）に応じてログイン画面/アプリ本体を出し分けます。
+ */
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './contexts/AuthContext'
 import Layout from './components/Layout'
@@ -14,6 +18,9 @@ import YouTubeMusicSetupPage from './pages/YouTubeMusicSetupPage'
 import AuthCallbackPage from './pages/AuthCallbackPage'
 import LoginPage from './pages/LoginPage'
 
+/**
+ * 画面ルートの切り替えを行うルートコンポーネント。
+ */
 function App() {
   const { user, loading } = useAuth()
 

@@ -5,7 +5,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface ICachedPlaylist extends Document {
-  userId: string; // Google ID
+  userId: string; // GoogleのユーザーID
   playlistId: string;
   title: string;
   description?: string;
@@ -15,7 +15,7 @@ export interface ICachedPlaylist extends Document {
   channelTitle?: string;
   privacy?: 'public' | 'private' | 'unlisted';
   isMusicPlaylist?: boolean; // 音楽プレイリストかどうか（キーワードベース判定）
-  etag?: string; // ETag for conditional requests（差分更新用）
+  etag?: string; // 条件付きリクエスト用のETag（差分更新用）
   cachedAt: Date;
   createdAt: Date;
   updatedAt: Date;

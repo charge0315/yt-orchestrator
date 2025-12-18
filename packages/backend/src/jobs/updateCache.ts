@@ -280,7 +280,7 @@ async function updateChannelCache(userId: string, accessToken: string, force = f
           if (latestVideo.snippet?.publishedAt) {
             channel.latestVideoPublishedAt = new Date(latestVideo.snippet.publishedAt);
           }
-          channel.latestVideoTitle = latestVideo.snippet?.title ?? undefined; // Fix: Ensure null is handled
+          channel.latestVideoTitle = latestVideo.snippet?.title ?? undefined; // 修正: null を確実に undefined に落とす
           channel.cachedAt = new Date();
           channel.isArtist = isArtist;
 

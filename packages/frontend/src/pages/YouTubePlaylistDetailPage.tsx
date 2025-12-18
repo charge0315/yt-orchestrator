@@ -1,9 +1,18 @@
+/**
+ * YouTube プレイリスト詳細ページ
+ * - プレイリスト内の動画一覧を取得して表示
+ * - 動画検索（YouTube Data API 経由）から追加
+ * - 既存動画の削除
+ */
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { youtubeApi } from '../api/client'
 import './PlaylistDetailPage.css'
 
+/**
+ * 画面で扱う動画情報（最小形）
+ */
 interface Video {
   videoId: string
   title: string
@@ -21,7 +30,7 @@ function YouTubePlaylistDetailPage() {
   const [searchResults, setSearchResults] = useState<Video[]>([])
   const [isSearchLoading, setIsSearchLoading] = useState(false)
 
-  // Get playlist items
+  // プレイリスト内の動画一覧を取得
   const { data: videos, isLoading } = useQuery({
     queryKey: ['youtube-playlist-items', id],
     queryFn: async () => {
@@ -31,7 +40,7 @@ function YouTubePlaylistDetailPage() {
     enabled: !!id
   })
 
-  // Add video mutation
+  // 動画追加のミューテーション
   const addVideoMutation = useMutation({
     mutationFn: (videoId: string) => youtubeApi.addVideo(id!, videoId),
     onSuccess: () => {
@@ -40,7 +49,7 @@ function YouTubePlaylistDetailPage() {
     }
   })
 
-  // Remove video mutation
+  // 動画削除のミューテーション
   const removeVideoMutation = useMutation({
     mutationFn: (videoId: string) => youtubeApi.removeVideo(id!, videoId),
     onSuccess: () => {
@@ -49,6 +58,10 @@ function YouTubePlaylistDetailPage() {
     }
   })
 
+  /**
+   * 検索フォーム送信ハンドラ。
+   * クエリをバックエンドへ送り、動画候補を取得します。
+   */
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!searchQuery.trim()) return
@@ -58,13 +71,16 @@ function YouTubePlaylistDetailPage() {
       const response = await youtubeApi.searchVideos(searchQuery, 10)
       setSearchResults(response.data as Video[])
     } catch (error) {
-      console.error('Search failed:', error)
+      console.error('検索に失敗しました:', error)
       console.error('動画の検索に失敗しました')
     } finally {
       setIsSearchLoading(false)
     }
   }
 
+  /**
+   * 検索結果の動画をプレイリストへ追加します。
+   */
   const handleAddVideo = (videoId: string) => {
     addVideoMutation.mutate(videoId, {
       onSuccess: () => {
@@ -75,10 +91,13 @@ function YouTubePlaylistDetailPage() {
     })
   }
 
+  /**
+   * ISO 8601 の動画尺（例: PT1H2M10S）を `H:MM:SS` / `M:SS` に整形します。
+   */
   const formatDuration = (duration?: string) => {
     if (!duration) return ''
 
-    // Parse ISO 8601 duration (PT1H2M10S)
+    // ISO 8601 duration（例: PT1H2M10S）をパース
     const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/)
     if (!match) return ''
 

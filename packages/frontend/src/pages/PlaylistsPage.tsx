@@ -1,3 +1,9 @@
+/**
+ * YouTube Music プレイリスト一覧ページ
+ * - ytmusicApi からプレイリスト一覧を取得して表示
+ * - JSONでのインポート/エクスポートを提供
+ * - 任意で、プレイリストのチャンネルIDをアーティスト登録します
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { ytmusicApi, playlistsApi, artistsApi } from '../api/client'
@@ -20,7 +26,9 @@ function PlaylistsPage() {
     retry: false
   })
 
-  // エクスポート処理
+  /**
+   * 指定プレイリストを JSON としてエクスポートします。
+   */
   const handleExport = async (playlistId: string, playlistTitle: string) => {
     try {
       const response = await playlistsApi.export(playlistId)
@@ -35,12 +43,14 @@ function PlaylistsPage() {
       document.body.removeChild(a)
       alert('プレイリストをエクスポートしました')
     } catch (error) {
-      console.error('Export error:', error)
+      console.error('エクスポートに失敗しました:', error)
       alert('エクスポートに失敗しました')
     }
   }
 
-  // インポート処理
+  /**
+   * JSON ファイルをアップロードしてインポートするミューテーション。
+   */
   const importMutation = useMutation({
     mutationFn: async (file: File) => {
       const text = await file.text()
@@ -54,12 +64,15 @@ function PlaylistsPage() {
       setTimeout(() => setImportStatus(''), 5000)
     },
     onError: (error) => {
-      console.error('Import error:', error)
+      console.error('インポートに失敗しました:', error)
       setImportStatus('インポートに失敗しました')
       setTimeout(() => setImportStatus(''), 5000)
     }
   })
 
+  /**
+   * ファイル選択時にインポートを実行します。
+   */
   const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {
@@ -138,7 +151,7 @@ function PlaylistsPage() {
                       await artistsApi.subscribe({ channelId: playlist.snippet!.channelId! })
                       alert('チャンネルを登録しました')
                     } catch (err) {
-                      console.error('Subscribe failed:', err)
+                      console.error('チャンネル登録に失敗しました:', err)
                       alert('登録に失敗しました')
                     }
                   }}

@@ -176,7 +176,9 @@ export const authApi = {
   me: () => apiClient.get<{ user: User }>('/auth/me')
 }
 
-// YouTube Types
+// ========================================
+// YouTube 関連の型定義
+// ========================================
 export interface Video {
   videoId: string
   title: string
@@ -231,7 +233,9 @@ export interface ChannelRecommendation {
   reason: string
 }
 
-// YouTube Playlists API
+// ========================================
+// YouTube プレイリスト API
+// ========================================
 export const youtubePlaylistsApi = {
   getAll: () => apiClient.get<YouTubePlaylist[]>('/youtube/playlists'),
   getById: (id: string) => apiClient.get<YouTubePlaylist>(`/youtube/playlists/${id}`),
@@ -246,7 +250,9 @@ export const youtubePlaylistsApi = {
     apiClient.delete<YouTubePlaylist>(`/youtube/playlists/${id}/videos/${videoId}`)
 }
 
-// YouTube Channels API
+// ========================================
+// YouTube チャンネル API
+// ========================================
 export const youtubeChannelsApi = {
   getAll: () => apiClient.get<YouTubeChannel[]>('/youtube/channels'),
   subscribe: (data: { name: string; channelId: string; thumbnail?: string; description?: string; subscriberCount?: string }) =>
@@ -257,13 +263,17 @@ export const youtubeChannelsApi = {
     apiClient.post<YouTubeChannel>(`/youtube/channels/${id}/update-videos`, { latestVideos })
 }
 
-// YouTube Recommendations API
+// ========================================
+// YouTube レコメンド API
+// ========================================
 export const youtubeRecommendationsApi = {
   getChannels: () => apiClient.get<ChannelRecommendation[]>('/youtube/recommendations/channels'),
   getVideos: () => apiClient.get<LatestVideo[]>('/youtube/recommendations/videos')
 }
 
-// YouTube Data API (Real YouTube API)
+// ========================================
+// YouTube Data API（実YouTube API へのプロキシ）
+// ========================================
 export interface YouTubeAuthStatus {
   connected: boolean
   expiresAt?: Date
@@ -288,7 +298,9 @@ export const youtubeDataApi = {
     apiClient.get('/youtube/search', { params: { query, maxResults } })
 }
 
-// YouTube Music API (ytmusicapi)
+// ========================================
+// YouTube Music API（ytmusicapi）
+// ========================================
 export const ytmusicApi = {
   saveCookie: (cookie: string) => apiClient.post('/ytmusic/auth/cookie', { cookie }),
   getAuthStatus: () => apiClient.get<{ connected: boolean }>('/ytmusic/auth/status'),
@@ -299,14 +311,18 @@ export const ytmusicApi = {
   searchSongs: (query: string) => apiClient.get<Song[]>('/ytmusic/search', { params: { query } })
 }
 
-// YouTube OAuth API
+// ========================================
+// YouTube OAuth API（認可URL取得/コールバック処理/状態確認）
+// ========================================
 export const youtubeOAuthApi = {
   getAuthUrl: () => apiClient.get<{ url: string }>('/youtube/auth/url'),
   handleCallback: (code: string) => apiClient.post('/youtube/auth/callback', { code }),
   getStatus: () => apiClient.get<{ connected: boolean; expiresAt?: Date }>('/youtube/auth/status')
 }
 
-// YouTube API (direct from YouTube, not MongoDB)
+// ========================================
+// YouTube API（MongoDBではなくYouTube側を参照する想定のAPI群）
+// ========================================
 export const youtubeApi = {
   getPlaylists: () => apiClient.get('/youtube/playlists'),
   getPlaylistItems: (playlistId: string) => apiClient.get(`/youtube/playlists/${playlistId}/items`),

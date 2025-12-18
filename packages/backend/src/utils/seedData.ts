@@ -1,7 +1,13 @@
 /**
- * Initial seed script that populates MongoDB with live data fetched from the YouTube Data API.
- * The script targets a demo user and stores channel and playlist cache entries so that
- * the application can render meaningful data before the first OAuth login.
+ * 初期データ（seed）投入ユーティリティ
+ *
+ * 目的:
+ * - YouTube Data API から取得したデータを MongoDB に投入する
+ * - 初回OAuthログイン前でも、デモユーザー向けにチャンネル/プレイリストのキャッシュを作る
+ *
+ * 注意:
+ * - 既にデータが存在する場合はスキップします
+ * - `DISABLE_DB_SEED=1` の場合は常にスキップします
  */
 import mongoose from 'mongoose';
 import { google, youtube_v3 } from 'googleapis';
@@ -11,7 +17,7 @@ import { User } from '../models/User.js';
 
 const SEED_DISABLED_FLAG = '1';
 
-// This interface was previously in the deleted Playlist.ts model
+// 以前は削除された Playlist.ts モデルに定義されていた型
 interface IPlaylistItem {
   videoId: string;
   title: string;
@@ -62,16 +68,24 @@ interface PlaylistSeedData {
 }
 
 const SEED_CHANNEL_IDS = [
-  'UC_x5XG1OV2P6uZZ5FSM9Ttw', // Google Developers
+  'UC_x5XG1OV2P6uZZ5FSM9Ttw', // Google Developers（公式）
   'UC29ju8bIPH5as8OGnQzwJyA', // Traversy Media
   'UCq19-LqvG35A-30oyAiPiqA', // COLORS
   'UCNnnwVSI5Ndo2I4a5kqWm9A', // 88rising
 ];
 
 const SEED_PLAYLIST_IDS = [
-  'PL-osiE80TeTs4_09Xl4tE1WqgG8i3idZu', // Node.js Crash Course
-  'PLFgquLnL59alW3xmYiWRaoz0oM3H17Lth', // Today’s Top Hits
+  'PL-osiE80TeTs4_09Xl4tE1WqgG8i3idZu', // Node.js 入門（Crash Course）
+  'PLFgquLnL59alW3xmYiWRaoz0oM3H17Lth', // 今日のトップヒット（Today’s Top Hits）
 ];
+
+/**
+ * 初期データ（デモ用ユーザー/チャンネル/プレイリスト）を MongoDB に投入します。
+ *
+ * 返り値:
+ * - 実行した場合は作成件数
+ * - スキップした場合は `null`
+ */
 
 export async function seedInitialData(): Promise<SeedResult | null> {
   if (process.env.DISABLE_DB_SEED === SEED_DISABLED_FLAG) {
@@ -185,6 +199,10 @@ export async function seedInitialData(): Promise<SeedResult | null> {
   };
 }
 
+/**
+ * YouTube Data API v3 クライアントを作成します。
+ * `YOUTUBE_API_KEY`（または `GOOGLE_API_KEY`）が必須です。
+ */
 function createYoutubeClient(): youtube_v3.Youtube {
   const apiKey = process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
@@ -193,6 +211,10 @@ function createYoutubeClient(): youtube_v3.Youtube {
   return google.youtube({ version: 'v3', auth: apiKey });
 }
 
+/**
+ * 指定したチャンネルの seed 用データを YouTube API から取得します。
+ * 最新動画（最大3件）も取得し、カテゴリ比率から `isArtist` を推定します。
+ */
 async function fetchChannelSeed(
   youtube: youtube_v3.Youtube,
   channelId: string
@@ -255,6 +277,10 @@ async function fetchChannelSeed(
   };
 }
 
+/**
+ * 指定したプレイリストの seed 用データ（概要 + 全アイテム）を取得します。
+ * 先頭10件のカテゴリ比率から `isMusicPlaylist` を推定します。
+ */
 async function fetchPlaylistSeed(
   youtube: youtube_v3.Youtube,
   playlistId: string
@@ -307,6 +333,9 @@ async function fetchPlaylistSeed(
   };
 }
 
+/**
+ * プレイリストのアイテムをページングで全件取得します。
+ */
 async function fetchAllPlaylistItems(
   youtube: youtube_v3.Youtube,
   playlistId: string
@@ -333,6 +362,9 @@ async function fetchAllPlaylistItems(
   return items;
 }
 
+/**
+ * YouTube API の PlaylistItem を、アプリ側で扱いやすい最小形に変換します。
+ */
 function convertPlaylistItems(rawItems: youtube_v3.Schema$PlaylistItem[]): IPlaylistItem[] {
   const now = new Date();
   return rawItems
@@ -353,6 +385,10 @@ function convertPlaylistItems(rawItems: youtube_v3.Schema$PlaylistItem[]): IPlay
     .filter((item): item is IPlaylistItem => item !== null);
 }
 
+/**
+ * 動画ID配列からカテゴリID（例: 音楽=10）を収集します。
+ * API制限に合わせて最大50件ずつチャンクして取得します。
+ */
 async function collectVideoCategories(
   youtube: youtube_v3.Youtube,
   videoIds: string[]
@@ -379,6 +415,9 @@ async function collectVideoCategories(
   return categories;
 }
 
+/**
+ * サムネイル候補から、できるだけ高解像度のURLを選択します。
+ */
 function bestThumbnail(thumbnails?: youtube_v3.Schema$ThumbnailDetails): string | undefined {
   if (!thumbnails) return undefined;
   return (
@@ -391,6 +430,9 @@ function bestThumbnail(thumbnails?: youtube_v3.Schema$ThumbnailDetails): string 
   );
 }
 
+/**
+ * YouTube API の文字列数値を number に変換します（不正値は `undefined`）。
+ */
 function toNumber(value?: string | null): number | undefined {
   if (typeof value !== 'string') return undefined;
   const parsed = Number(value);

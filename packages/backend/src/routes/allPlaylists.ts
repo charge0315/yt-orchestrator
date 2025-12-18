@@ -1,3 +1,8 @@
+/**
+ * プレイリスト一覧（キャッシュ）ルート
+ * - DBキャッシュからプレイリストを返します。
+ * - 返却形式はフロント側が期待する YouTube API 風の形に整形します。
+ */
 import express, { Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { CachedPlaylist } from '../models/CachedPlaylist.js';
@@ -5,12 +10,12 @@ import mongoose from 'mongoose';
 
 const router = express.Router();
 
-// All routes require authentication
+// 全エンドポイントで認証が必要
 router.use(authenticate);
 
 /**
  * GET /api/playlists
- * Returns all of a user's non-music playlists from the cache.
+ * ユーザーのプレイリストをキャッシュから返します。
  */
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {

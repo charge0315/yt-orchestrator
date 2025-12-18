@@ -1,3 +1,8 @@
+/**
+ * アーティスト一覧（キャッシュ）ルート
+ * - `isArtist=true` のチャンネルをアーティストとして扱い返します。
+ * - `/new-releases` は最新動画（キャッシュ）を返します。
+ */
 import express, { Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { CachedChannel } from '../models/CachedChannel.js';
@@ -9,7 +14,7 @@ router.use(authenticate);
 
 /**
  * GET /api/artists
- * Returns all artist channels from the cache.
+ * アーティスト扱いのチャンネルをキャッシュから返します。
  */
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -18,7 +23,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
     const cachedArtists = await CachedChannel.find({ userId: req.userId, isArtist: true }).sort({ channelTitle: 1 }).lean();
     
     const formatted = cachedArtists.map((ch) => ({
-      id: ch.subscriptionId, // Match channel format for UI consistency
+      id: ch.subscriptionId, // UI側のチャンネル形式に合わせる
       latestVideoId: ch.latestVideoId,
       latestVideoThumbnail: ch.latestVideoThumbnail,
       latestVideoTitle: ch.latestVideoTitle,
@@ -38,7 +43,7 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
 /**
  * GET /api/artists/new-releases
- * Returns the latest videos from all subscribed channels.
+ * 購読チャンネル全体の最新動画を（キャッシュから）返します。
  */
 router.get('/new-releases', async (req: AuthRequest, res: Response) => {
   try {

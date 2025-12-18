@@ -1,3 +1,8 @@
+/**
+ * アプリ全体のレイアウト
+ * - サイドバー（ナビゲーション）とメインコンテンツ領域を提供
+ * - モバイルではハンバーガーメニューで開閉します
+ */
 import { ReactNode, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
@@ -7,21 +12,36 @@ interface LayoutProps {
   children: ReactNode
 }
 
+/**
+ * 画面共通レイアウト。
+ */
 function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const { user, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  /**
+   * 現在のパスに応じてアクティブ表示を判定します。
+   */
   const isActive = (path: string) => location.pathname === path
 
+  /**
+   * ログアウト処理（AuthContextへ委譲）。
+   */
   const handleLogout = async () => {
     await logout()
   }
 
+  /**
+   * サイドバーの開閉を切り替えます。
+   */
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
   }
 
+  /**
+   * サイドバーを閉じます（モバイル用）。
+   */
   const closeSidebar = () => {
     setSidebarOpen(false)
   }

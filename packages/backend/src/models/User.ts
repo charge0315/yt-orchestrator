@@ -10,7 +10,7 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
 export interface IUser extends Document {
-  googleId: string; // Google OAuth ID
+  googleId: string; // Google OAuth のユーザーID
   email: string;
   name?: string;
   picture?: string;

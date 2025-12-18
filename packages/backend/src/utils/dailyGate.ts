@@ -1,5 +1,13 @@
+/**
+ * 日次ゲート（1日1回制限）ユーティリティ
+ * 目的: ユーザーごとに「当日1回だけ」YouTube系の処理を許可するための簡易レート制御。
+ * 実装: MongoDB の ApiUsage を参照/更新して当日利用フラグを管理します（UTC日付）。
+ */
 import { ApiUsage } from '../models/ApiUsage.js';
 
+/**
+ * UTC日付のキー（YYYY-MM-DD）を生成します。
+ */
 function getUtcDateKey(d: Date = new Date()): string {
   const y = d.getUTCFullYear();
   const m = (d.getUTCMonth() + 1).toString().padStart(2, '0');

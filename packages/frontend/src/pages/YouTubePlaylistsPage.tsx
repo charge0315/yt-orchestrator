@@ -1,9 +1,20 @@
+/**
+ * YouTube（Data API）側の「再生リスト」を一覧するページ。
+ *
+ * - 一覧: `youtubeApi.getPlaylists`
+ * - エクスポート: 既存プレイリストをJSONとしてダウンロード
+ * - インポート: JSONを読み込み、バックエンドへ取り込み依頼
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { youtubeApi, playlistsApi } from '../api/client'
 import { useState, useRef } from 'react'
 import './YouTubePlaylistsPage.css'
 
+/**
+ * YouTubeの再生リスト一覧。
+ * ローカルのプレイリストとは別に、YouTube上の再生リスト（動画）を扱う。
+ */
 function YouTubePlaylistsPage() {
   const queryClient = useQueryClient()
   const [importStatus, setImportStatus] = useState<string>('')
@@ -19,7 +30,9 @@ function YouTubePlaylistsPage() {
     }
   })
 
-  // エクスポート処理
+  /**
+   * 指定のプレイリストをJSONとしてエクスポート（ダウンロード）する。
+   */
   const handleExport = async (playlistId: string, playlistTitle: string) => {
     try {
       const response = await playlistsApi.export(playlistId)
@@ -34,12 +47,14 @@ function YouTubePlaylistsPage() {
       document.body.removeChild(a)
       alert('プレイリストをエクスポートしました')
     } catch (error) {
-      console.error('Export error:', error)
+      console.error('エクスポートに失敗しました:', error)
       alert('エクスポートに失敗しました')
     }
   }
 
-  // インポート処理
+  /**
+   * ファイル選択で受け取ったJSONを読み込み、バックエンドにインポートを依頼する。
+   */
   const importMutation = useMutation({
     mutationFn: async (file: File) => {
       const text = await file.text()
@@ -53,12 +68,15 @@ function YouTubePlaylistsPage() {
       setTimeout(() => setImportStatus(''), 5000)
     },
     onError: (error) => {
-      console.error('Import error:', error)
+      console.error('インポートに失敗しました:', error)
       setImportStatus('インポートに失敗しました')
       setTimeout(() => setImportStatus(''), 5000)
     }
   })
 
+  /**
+   * hiddenなfile inputの変更イベントを受け取り、インポートを開始する。
+   */
   const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (file) {

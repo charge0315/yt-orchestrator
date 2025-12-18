@@ -1,3 +1,8 @@
+/**
+ * チャンネル一覧（キャッシュ）ルート
+ * - アーティスト扱いのチャンネルは除外し、通常チャンネルのみ返します。
+ * - DB未接続時は空配列を返します。
+ */
 import express, { Response } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.js';
 import { CachedChannel } from '../models/CachedChannel.js';
@@ -9,7 +14,7 @@ router.use(authenticate);
 
 /**
  * GET /api/channels
- * Returns all of a user's subscribed channels (excluding artists) from the cache.
+ * ユーザーの購読チャンネル（アーティスト除外）をキャッシュから返します。
  */
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
@@ -17,14 +22,14 @@ router.get('/', async (req: AuthRequest, res: Response) => {
       return res.json([]);
     }
 
-    // Exclude channels marked as artists to avoid duplication
+    // アーティスト扱いのチャンネルは重複防止のため除外
     const cachedChannels = await CachedChannel.find({ userId: req.userId, isArtist: { $ne: true } }).sort({ channelTitle: 1 }).lean();
     
     const formatted = cachedChannels.map((ch) => ({
       id: ch.subscriptionId,
       latestVideoId: ch.latestVideoId,
       latestVideoThumbnail: ch.latestVideoThumbnail,
-      latestVideoTitle: ch.latestVideoTitle, // Add latest video title for the UI
+      latestVideoTitle: ch.latestVideoTitle, // UI表示用に最新動画タイトルも返す
       snippet: {
         resourceId: { channelId: ch.channelId },
         title: ch.channelTitle,

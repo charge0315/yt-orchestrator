@@ -11,6 +11,9 @@ interface SkeletonLoaderProps {
   width?: string
 }
 
+/**
+ * 指定された `type` に応じたスケルトンUIを描画します。
+ */
 function SkeletonLoader({ type = 'card', count = 1, height, width }: SkeletonLoaderProps) {
   const items = Array.from({ length: count }, (_, i) => i)
 
@@ -52,7 +55,7 @@ function SkeletonLoader({ type = 'card', count = 1, height, width }: SkeletonLoa
     )
   }
 
-  // text type
+  // テキスト（行）タイプ
   return (
     <div className="skeleton-container">
       {items.map((i) => (
