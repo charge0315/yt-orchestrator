@@ -64,6 +64,12 @@ cd yt-orchestrator
 npm install
 ```
 
+## 🔐 秘匿情報の取り扱い
+
+- OAuth のクライアントシークレットなどの秘匿情報は、リポジトリにコミットしないでください。
+- 本リポジトリでは誤コミット防止のため、`client_secret*.json` を `.gitignore` で除外しています。
+- 認証情報は基本的に `packages/backend/.env` の `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` で設定します。
+
 ### 3. 環境変数の設定
 
 バックエンドとフロントエンドのそれぞれの `.env.example` ファイルをコピーして `.env` ファイルを作成します。
@@ -108,6 +114,23 @@ npm run dev
 
 - フロントエンド: `http://localhost:5173`
 - バックエンドAPI: `http://localhost:3001`
+
+## 🧱 ビルド
+
+ルートで以下を実行すると、フロントエンド（`tsc && vite build`）とバックエンド（`tsc`）をまとめてビルドします。
+
+```bash
+npm run build
+```
+
+## 🧰 便利スクリプト（任意）
+
+MongoDB の状態確認や seed を手動実行したい場合は、`packages/backend/src/scripts/` 配下のスクリプトを利用できます。
+
+- `seed.ts`: 初期データ投入
+- `checkAllData.ts`: MongoDB のコレクション/データ概況を表示
+- `checkCache.ts`: キャッシュチャンネルのサンプル/統計を表示
+- `checkPlaylists.ts`: キャッシュプレイリストのサンプル/統計を表示
 
 ## 📖 APIエンドポイント
 
