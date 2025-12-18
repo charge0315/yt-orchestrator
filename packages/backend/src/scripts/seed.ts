@@ -19,12 +19,12 @@ async function main() {
     await connectDatabase()
     const result = await seedInitialData()
     if (result) {
-      console.log('✅ Seed completed:', result)
+      console.log('✅ seed が完了しました:', result)
     } else {
-      console.log('ℹ️ Seed skipped (data already present or disabled)')
+      console.log('ℹ️ seed をスキップしました（データが既に存在するか、無効化されています）')
     }
   } catch (error) {
-    console.error('❌ Seed failed:', error)
+    console.error('❌ seed に失敗しました:', error)
     process.exitCode = 1
   } finally {
     await disconnectDatabase()

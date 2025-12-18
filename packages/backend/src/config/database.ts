@@ -11,20 +11,20 @@ export async function connectDatabase() {
     const disabled = process.env.DISABLE_MONGO === '1' ||
       (process.env.MONGODB_URI && process.env.MONGODB_URI.toLowerCase() === 'disabled');
     if (disabled) {
-      console.warn('MongoDB connection disabled by environment (DISABLE_MONGO=1 or MONGODB_URI=disabled). Running without DB.');
+      console.warn('環境変数により MongoDB 接続が無効化されています（DISABLE_MONGO=1 または MONGODB_URI=disabled）。DB なしで続行します。');
       return;
     }
 
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/yt-orchestrator';
-    console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Missing');
+    console.log('MONGODB_URI:', process.env.MONGODB_URI ? '設定済み' : '未設定');
     try {
       const parsed = new URL(mongoUri.replace('mongodb+srv', 'http').replace('mongodb', 'http'));
-      console.log('MongoDB target host:', parsed.host);
+      console.log('MongoDB 接続先ホスト:', parsed.host);
     } catch {}
     await mongoose.connect(mongoUri);
-    console.log('MongoDB connected successfully');
+    console.log('MongoDB 接続に成功しました');
   } catch (error) {
-    console.error('MongoDB connection error:', error);
+    console.error('MongoDB 接続エラー:', error);
     // 接続エラーでもアプリケーションは続行（フォールバック対応）
   }
 }
@@ -35,8 +35,8 @@ export async function connectDatabase() {
 export async function disconnectDatabase() {
   try {
     await mongoose.disconnect();
-    console.log('MongoDB disconnected');
+    console.log('MongoDB を切断しました');
   } catch (error) {
-    console.error('MongoDB disconnection error:', error);
+    console.error('MongoDB 切断エラー:', error);
   }
 }

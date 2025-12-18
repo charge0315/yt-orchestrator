@@ -46,8 +46,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     return res.json({ items: formatted, nextPageToken: undefined });
   } catch (error) {
-    console.error('Error fetching non-music playlists:', error);
-    res.status(500).json({ error: 'Failed to fetch playlists' });
+    console.error('プレイリスト取得エラー:', error);
+    res.status(500).json({ error: 'プレイリストの取得に失敗しました' });
   }
 });
 

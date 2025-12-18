@@ -56,7 +56,7 @@ export class YouTubeApiService {
    */
   static createFromAccessToken(accessToken: string | undefined): YouTubeApiService {
     if (!accessToken) {
-      throw new Error('YouTube access token not found');
+      throw new Error('YouTube アクセストークンが見つかりません');
     }
     return new YouTubeApiService(accessToken);
   }
@@ -101,7 +101,7 @@ export class YouTubeApiService {
     } catch (error: any) {
       // 304 Not Modified の場合、変更なしなのでキャッシュを返す
       if (error?.code === 304) {
-        console.log('📊 ETag match: Playlist not modified (quota saved!)');
+        console.log('📊 ETag 一致: プレイリストは未更新です（クォータ節約）');
         const cached = this.getFromCache(cacheKey);
         if (cached) return cached;
       }
@@ -199,10 +199,10 @@ export class YouTubeApiService {
   }
 
   /**
-   * Determine whether a playlist is music oriented (sync version).
-   * Uses only cached item category identifiers and returns true when Music (10) is >= 50%.
-   * @param playlist Playlist object.
-   * @returns true when the cached sample is music focused.
+   * プレイリストが音楽系かどうかを判定（同期版）
+   * キャッシュ済みのカテゴリ情報のみを使用し、Music（10）が一定割合以上なら true を返します。
+   * @param playlist プレイリストオブジェクト
+   * @returns 音楽系と判断できる場合は true
    */
   isMusicPlaylist(playlist: any): boolean {
     const items: any[] = Array.isArray(playlist?.items)
@@ -230,10 +230,10 @@ export class YouTubeApiService {
   }
 
   /**
-   * Determine whether a playlist is music oriented (async version).
-   * Fetches sample videos and checks if categoryId Music (10) represents at least half of them.
-   * @param playlistId Playlist ID.
-   * @returns true when the Music category is dominant.
+   * プレイリストが音楽系かどうかを判定（非同期版）
+   * サンプル動画を取得し、カテゴリID が Music（10）に該当する割合を見て判定します。
+   * @param playlistId プレイリストID
+   * @returns 音楽系と判断できる場合は true
    */
   async isMusicPlaylistAsync(playlistId: string): Promise<boolean> {
     const cacheKey = 'playlist_music_check:' + playlistId;
@@ -280,7 +280,7 @@ export class YouTubeApiService {
       this.setCache(cacheKey, isMusic);
       return isMusic;
     } catch (error) {
-      console.error('Error checking if playlist is music:', error);
+      console.error('プレイリストが音楽系かどうかの判定に失敗しました:', error);
       this.setCache(cacheKey, false);
       return false;
     }
@@ -380,7 +380,7 @@ export class YouTubeApiService {
     } catch (error: any) {
       // 304 Not Modified の場合
       if (error?.code === 304) {
-        console.log(`📊 ETag match: Playlist items not modified for ${playlistId} (quota saved!)`);
+        console.log(`📊 ETag 一致: プレイリストアイテムは未更新です（${playlistId} / クォータ節約）`);
         return {
           items: [],
           nextPageToken: undefined,
@@ -533,7 +533,7 @@ export class YouTubeApiService {
         fields: 'items(id,snippet(title,thumbnails,channelTitle,publishedAt,channelId))' // 必要なフィールドのみ
       });
       const items = response.data.items || [];
-      console.log(`📊 Incremental fetch for channel ${channelId}: found ${items.length} new videos since ${publishedAfter.toISOString()}`);
+      console.log(`📊 差分取得: チャンネル ${channelId} で新規動画 ${items.length} 件（${publishedAfter.toISOString()} 以降）`);
       return items;
     } catch (error) {
       this.handleApiError(error, 'getChannelVideosIncremental');
@@ -586,7 +586,7 @@ export class YouTubeApiService {
       return null;
     }
     
-    console.log(`Cache hit: ${key}`);
+    console.log(`キャッシュヒット: ${key}`);
     return entry.data;
   }
 
@@ -602,10 +602,10 @@ export class YouTubeApiService {
    */
   private handleApiError(error: any, method: string): void {
     if (error.code === 403) {
-      console.error(`YouTube API quota exceeded in ${method}. Using cached data or returning empty result.`);
-      console.error('Please wait until quota resets (daily at midnight Pacific Time) or enable billing.');
+      console.error(`YouTube API のクォータ上限に達しました（${method}）。キャッシュを使用するか、空の結果を返します。`);
+      console.error('クォータがリセットされるまで待つ（米国太平洋時間の深夜）か、課金を有効化してください。');
     } else {
-      console.error(`Error in ${method}:`, error.message);
+      console.error(`${method} でエラーが発生しました:`, error.message);
     }
   }
 }

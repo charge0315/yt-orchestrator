@@ -10,33 +10,33 @@ let isConnected = false;
  */
 export async function connectDB(): Promise<void> {
   if (isConnected) {
-    console.log('Already connected to MongoDB');
+    console.log('MongoDB は既に接続済みです');
     return;
   }
 
   const uri = process.env.MONGODB_URI;
   if (!uri) {
-    console.warn('⚠️  MONGODB_URI is not set. MongoDB caching will be disabled.');
+    console.warn('⚠️  MONGODB_URI が未設定です。MongoDB キャッシュは無効になります。');
     return;
   }
 
   try {
     await mongoose.connect(uri);
     isConnected = true;
-    console.log('✅ Connected to MongoDB');
+    console.log('✅ MongoDB に接続しました');
 
     // 接続エラーハンドリング
     mongoose.connection.on('error', (err) => {
-      console.error('MongoDB connection error:', err);
+      console.error('MongoDB 接続エラー:', err);
       isConnected = false;
     });
 
     mongoose.connection.on('disconnected', () => {
-      console.warn('MongoDB disconnected');
+      console.warn('MongoDB から切断されました');
       isConnected = false;
     });
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
+    console.error('MongoDB への接続に失敗しました:', error);
     throw error;
   }
 }
@@ -52,9 +52,9 @@ export async function disconnectDB(): Promise<void> {
   try {
     await mongoose.disconnect();
     isConnected = false;
-    console.log('Disconnected from MongoDB');
+    console.log('MongoDB から切断しました');
   } catch (error) {
-    console.error('Failed to disconnect from MongoDB:', error);
+    console.error('MongoDB の切断に失敗しました:', error);
     throw error;
   }
 }

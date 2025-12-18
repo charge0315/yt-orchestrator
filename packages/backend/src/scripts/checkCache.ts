@@ -12,18 +12,18 @@ async function checkCache() {
     // MongoDB接続
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/yt-orchestrator';
     await mongoose.connect(mongoUri);
-    console.log('✅ MongoDB connected');
+    console.log('✅ MongoDB に接続しました');
 
     // サンプルチャンネルを1件取得
     const channel = await CachedChannel.findOne().lean();
 
     if (channel) {
-      console.log('\n📋 Sample Channel Data:');
-      console.log('Channel Title:', channel.channelTitle);
-      console.log('Latest Video Title:', channel.latestVideoTitle);
-      console.log('Latest Video ID:', channel.latestVideoId);
-      console.log('Latest Video Thumbnail:', channel.latestVideoThumbnail);
-      console.log('Cached At:', channel.cachedAt);
+      console.log('\n📋 サンプルチャンネルデータ:');
+      console.log('チャンネル名:', channel.channelTitle);
+      console.log('最新動画タイトル:', channel.latestVideoTitle);
+      console.log('最新動画ID:', channel.latestVideoId);
+      console.log('最新サムネイル:', channel.latestVideoThumbnail);
+      console.log('キャッシュ日時:', channel.cachedAt);
 
       // 全チャンネルの統計
       const totalChannels = await CachedChannel.countDocuments();
@@ -31,19 +31,19 @@ async function checkCache() {
         latestVideoTitle: { $exists: true, $ne: null }
       });
 
-      console.log('\n📊 Statistics:');
-      console.log('Total Channels:', totalChannels);
-      console.log('Channels with Video Title:', withVideoTitle);
-      console.log('Channels without Video Title:', totalChannels - withVideoTitle);
+      console.log('\n📊 統計:');
+      console.log('総チャンネル数:', totalChannels);
+      console.log('動画タイトルあり:', withVideoTitle);
+      console.log('動画タイトルなし:', totalChannels - withVideoTitle);
     } else {
-      console.log('⚠️  No cached channels found');
+      console.log('⚠️  キャッシュされたチャンネルが見つかりません');
     }
 
     await mongoose.disconnect();
-    console.log('\n✅ Done');
+    console.log('\n✅ 完了');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('❌ エラー:', error);
     process.exit(1);
   }
 }

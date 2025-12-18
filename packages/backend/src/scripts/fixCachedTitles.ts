@@ -13,7 +13,7 @@ async function fixCachedTitles() {
     // MongoDB接続
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/yt-orchestrator';
     await mongoose.connect(mongoUri);
-    console.log('✅ MongoDB connected');
+    console.log('✅ MongoDB に接続しました');
 
     // latestVideoTitleがnull/undefinedのチャンネルを取得
     const channelsWithoutTitle = await CachedChannel.find({
@@ -25,7 +25,7 @@ async function fixCachedTitles() {
       ]
     });
 
-    console.log(`\n📋 Found ${channelsWithoutTitle.length} channels without video titles`);
+    console.log(`\n📋 動画タイトルが未設定のチャンネルを ${channelsWithoutTitle.length} 件見つけました`);
 
     // 各チャンネルに仮のタイトルを設定（チャンネル名から推測）
     let updated = 0;
@@ -38,10 +38,10 @@ async function fixCachedTitles() {
       );
 
       updated++;
-      console.log(`✅ Updated: ${channel.channelTitle} -> "${placeholderTitle}"`);
+      console.log(`✅ 更新: ${channel.channelTitle} -> "${placeholderTitle}"`);
     }
 
-    console.log(`\n✅ Updated ${updated} channels`);
+    console.log(`\n✅ ${updated} 件のチャンネルを更新しました`);
 
     // 統計を再確認
     const totalChannels = await CachedChannel.countDocuments();
@@ -49,16 +49,16 @@ async function fixCachedTitles() {
       latestVideoTitle: { $exists: true, $ne: null }
     });
 
-    console.log('\n📊 Final Statistics:');
-    console.log('Total Channels:', totalChannels);
-    console.log('Channels with Video Title:', withVideoTitle);
-    console.log('Channels without Video Title:', totalChannels - withVideoTitle);
+    console.log('\n📊 最終統計:');
+    console.log('総チャンネル数:', totalChannels);
+    console.log('動画タイトルあり:', withVideoTitle);
+    console.log('動画タイトルなし:', totalChannels - withVideoTitle);
 
     await mongoose.disconnect();
-    console.log('\n✅ Done');
+    console.log('\n✅ 完了');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('❌ エラー:', error);
     process.exit(1);
   }
 }

@@ -45,7 +45,7 @@ router.get('/playlists', async (req: AuthRequest, res: Response) => {
     }))
     res.json({ items: formatted, nextPageToken: undefined })
   } catch (error) {
-    console.error('Error fetching YouTube playlists:', error)
+    console.error('YouTube プレイリスト取得エラー:', error)
     res.json({ items: [], nextPageToken: undefined })
   }
 })
@@ -58,13 +58,13 @@ router.get('/playlists', async (req: AuthRequest, res: Response) => {
 router.get('/search', async (req: AuthRequest, res: Response) => {
   try {
     const { query, maxResults } = req.query
-    if (!query || typeof query !== 'string') return res.status(400).json({ error: 'Query is required' })
+    if (!query || typeof query !== 'string') return res.status(400).json({ error: 'query が必要です' })
 
     const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
     const results = await yt.searchVideos(query, maxResults ? parseInt(maxResults as string) : 10)
     res.json(results)
   } catch (error) {
-    console.error('Error searching videos:', error)
+    console.error('動画検索エラー:', error)
     res.json([])
   }
 })

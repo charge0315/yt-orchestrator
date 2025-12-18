@@ -36,8 +36,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     return res.json(formatted);
   } catch (error) {
-    console.error('Error fetching artists:', error);
-    res.status(500).json({ error: 'Failed to fetch artists' });
+    console.error('アーティスト取得エラー:', error);
+    res.status(500).json({ error: 'アーティストの取得に失敗しました' });
   }
 });
 
@@ -69,8 +69,8 @@ router.get('/new-releases', async (req: AuthRequest, res: Response) => {
 
     res.json(formatted);
   } catch (error) {
-    console.error('Error fetching new releases:', error);
-    res.status(500).json({ error: 'Failed to fetch new releases' });
+    console.error('新着動画取得エラー:', error);
+    res.status(500).json({ error: '新着動画の取得に失敗しました' });
   }
 });
 

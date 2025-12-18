@@ -16,7 +16,7 @@ router.get('/search', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { query } = req.query
     if (!query || typeof query !== 'string') {
-      return res.status(400).json({ error: 'Query parameter is required' })
+      return res.status(400).json({ error: 'query パラメータが必要です' })
     }
 
     // YouTube Data API v3 で検索
@@ -27,14 +27,14 @@ router.get('/search', authenticate, async (req: AuthRequest, res: Response) => {
     const transformed = results.map((video: any) => ({
       videoId: video.id?.videoId,
       title: video.snippet?.title,
-      artist: video.snippet?.channelTitle || 'Unknown Artist',
+      artist: video.snippet?.channelTitle || '不明なアーティスト',
       thumbnail: video.snippet?.thumbnails?.default?.url || video.snippet?.thumbnails?.medium?.url,
     }))
 
     res.json({ results: transformed })
   } catch (error) {
-    console.error('Error searching songs:', error)
-    res.status(500).json({ error: 'Failed to search songs' })
+    console.error('曲/動画検索エラー:', error)
+    res.status(500).json({ error: '曲/動画の検索に失敗しました' })
   }
 })
 

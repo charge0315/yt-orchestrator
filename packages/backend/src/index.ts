@@ -40,17 +40,17 @@ const __dirname = path.dirname(__filename)
 const ENV_PATH = path.resolve(__dirname, '../.env')
 const envResult = dotenv.config({ path: ENV_PATH, override: true })
 if (envResult.error) {
-  console.error('dotenv load error:', envResult.error)
+  console.error('dotenv 読み込みエラー:', envResult.error)
 } else {
   console.log('.env path:', ENV_PATH)
 }
 
 // 簡易な環境変数の可視化（値そのものは出力しない）
-console.log('Environment variables loaded:')
-console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? 'Set (' + process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...)' : 'Missing')
-console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Missing')
+console.log('環境変数の読み込み状況:')
+console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '設定済み (' + process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...)' : '未設定')
+console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '設定済み' : '未設定')
 console.log('.env path:', ENV_PATH)
-console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Set' : 'Missing')
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? '設定済み' : '未設定')
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -79,7 +79,7 @@ app.use(
       if (allowedOrigins.indexOf(origin) !== -1 || isLocalhost(origin)) {
         callback(null, true)
       } else {
-        callback(new Error('Not allowed by CORS'))
+        callback(new Error('CORS により拒否されました'))
       }
     },
     credentials: true,
@@ -122,20 +122,20 @@ app.use('/api/ytmusic', ytmusicRoutes)
 
 // ヘルスチェック
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', message: 'YouTube Orchestrator API is running' })
+  res.json({ status: 'ok', message: 'YouTube Orchestrator API は稼働中です' })
 })
 
 // サーバー起動
 app.listen(PORT, async () => {
-  console.log(`Server is running on http://localhost:${PORT}`)
-  console.log(`Session-based authentication enabled`)
+  console.log(`サーバー起動: http://localhost:${PORT}`)
+  console.log('セッションベース認証を有効化しました')
 
   // MongoDB へ接続
   await connectDatabase()
   try {
     await seedInitialData()
   } catch (seedError) {
-    console.warn('Skipping initial data seed:', seedError instanceof Error ? seedError.message : seedError)
+    console.warn('初期データ seed をスキップします:', seedError instanceof Error ? seedError.message : seedError)
   }
 
   // User コレクションから有効な YouTube アクセストークンをプリロード
@@ -154,17 +154,17 @@ app.listen(PORT, async () => {
         )
       }
     }
-    console.log(`Preloaded tokens for ${users.length} users`)
+    console.log(`トークンをプリロードしました: ${users.length} ユーザー`)
   } catch (e) {
-    console.warn('Skipping token preload:', e?.toString?.() || e)
+    console.warn('トークンのプリロードをスキップします:', e?.toString?.() || e)
   }
 
   // バックグラウンドのキャッシュ更新ジョブを開始（環境変数で制御）
   // YouTube APIのクォータ節約のため、デフォルトは無効化
   if (process.env.ENABLE_CACHE_UPDATE_JOB === 'true') {
     startCacheUpdateJob()
-    console.log('✅ Background cache update job is ENABLED')
+    console.log('✅ バックグラウンドキャッシュ更新ジョブを有効化しました')
   } else {
-    console.log('⚠️  Background cache update job is DISABLED (set ENABLE_CACHE_UPDATE_JOB=true to enable)')
+    console.log('⚠️  バックグラウンドキャッシュ更新ジョブは無効です（有効化: ENABLE_CACHE_UPDATE_JOB=true）')
   }
 })

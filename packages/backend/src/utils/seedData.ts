@@ -89,12 +89,12 @@ const SEED_PLAYLIST_IDS = [
 
 export async function seedInitialData(): Promise<SeedResult | null> {
   if (process.env.DISABLE_DB_SEED === SEED_DISABLED_FLAG) {
-    console.log('MongoDB seed skipped: DISABLE_DB_SEED=1');
+    console.log('MongoDB seed をスキップしました: DISABLE_DB_SEED=1');
     return null;
   }
 
   if (mongoose.connection.readyState !== 1) {
-    console.warn('MongoDB seed skipped: connection not ready');
+    console.warn('MongoDB seed をスキップしました: 接続準備未完了');
     return null;
   }
 
@@ -105,7 +105,7 @@ export async function seedInitialData(): Promise<SeedResult | null> {
   ]);
 
   if (channelCount > 0 || cachedPlaylistCount > 0 || userCount > 0) {
-    console.log('MongoDB seed skipped: existing data detected');
+    console.log('MongoDB seed をスキップしました: 既存データを検出しました');
     return null;
   }
 
@@ -153,7 +153,7 @@ export async function seedInitialData(): Promise<SeedResult | null> {
       );
       createdChannels += 1;
     } catch (error) {
-      console.warn(`Failed to seed channel ${channelId}:`, error instanceof Error ? error.message : error);
+      console.warn(`チャンネルの seed に失敗しました: ${channelId}:`, error instanceof Error ? error.message : error);
     }
   }
 
@@ -184,12 +184,12 @@ export async function seedInitialData(): Promise<SeedResult | null> {
       );
       createdCachedPlaylists += 1;
     } catch (error) {
-      console.warn(`Failed to seed playlist ${playlistId}:`, error instanceof Error ? error.message : error);
+      console.warn(`プレイリストの seed に失敗しました: ${playlistId}:`, error instanceof Error ? error.message : error);
     }
   }
 
   console.log(
-    `Seeded MongoDB with ${createdChannels} channels and ${createdCachedPlaylists} cached playlists for user ${seedUserId}`
+    `MongoDB seed 完了: ユーザー ${seedUserId} にチャンネル ${createdChannels} 件、キャッシュ済みプレイリスト ${createdCachedPlaylists} 件を投入しました`
   );
 
   return {
@@ -206,7 +206,7 @@ export async function seedInitialData(): Promise<SeedResult | null> {
 function createYoutubeClient(): youtube_v3.Youtube {
   const apiKey = process.env.YOUTUBE_API_KEY || process.env.GOOGLE_API_KEY;
   if (!apiKey) {
-    throw new Error('YOUTUBE_API_KEY (or GOOGLE_API_KEY) is required to seed initial data');
+    throw new Error('初期データの seed には YOUTUBE_API_KEY（または GOOGLE_API_KEY）が必要です');
   }
   return google.youtube({ version: 'v3', auth: apiKey });
 }
@@ -227,7 +227,7 @@ async function fetchChannelSeed(
 
   const channel = channelResponse.data.items?.[0];
   if (!channel) {
-    throw new Error(`Channel not found for id ${channelId}`);
+    throw new Error(`チャンネルが見つかりません: ${channelId}`);
   }
 
   const snippet = channel.snippet;
@@ -294,7 +294,7 @@ async function fetchPlaylistSeed(
 
   const playlist = playlistResponse.data.items?.[0];
   if (!playlist) {
-    throw new Error(`Playlist not found for id ${playlistId}`);
+    throw new Error(`プレイリストが見つかりません: ${playlistId}`);
   }
 
   const rawItems = await fetchAllPlaylistItems(youtube, playlistId);

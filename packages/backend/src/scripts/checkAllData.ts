@@ -20,7 +20,7 @@ async function checkAllData() {
 
   const db = mongoose.connection.db;
   if (!db) {
-    console.error('MongoDB database handle is not available');
+    console.error('MongoDB の database ハンドルを取得できません');
     await mongoose.disconnect();
     process.exit(1);
     return;

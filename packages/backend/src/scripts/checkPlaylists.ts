@@ -12,18 +12,18 @@ async function checkPlaylists() {
     // MongoDB接続
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/yt-orchestrator';
     await mongoose.connect(mongoUri);
-    console.log('✅ MongoDB connected');
+    console.log('✅ MongoDB に接続しました');
 
     // サンプルプレイリストを1件取得
     const playlist = await CachedPlaylist.findOne().lean();
 
     if (playlist) {
-      console.log('\n📋 Sample Playlist Data:');
-      console.log('Title:', playlist.title);
-      console.log('Thumbnail URL:', playlist.thumbnailUrl);
-      console.log('Playlist ID:', playlist.playlistId);
-      console.log('Item Count:', playlist.itemCount);
-      console.log('Cached At:', playlist.cachedAt);
+      console.log('\n📋 サンプルプレイリストデータ:');
+      console.log('タイトル:', playlist.title);
+      console.log('サムネイルURL:', playlist.thumbnailUrl);
+      console.log('プレイリストID:', playlist.playlistId);
+      console.log('アイテム数:', playlist.itemCount);
+      console.log('キャッシュ日時:', playlist.cachedAt);
 
       // 全プレイリストの統計
       const totalPlaylists = await CachedPlaylist.countDocuments();
@@ -31,19 +31,19 @@ async function checkPlaylists() {
         thumbnailUrl: { $exists: true, $nin: [null, ''] }
       });
 
-      console.log('\n📊 Statistics:');
-      console.log('Total Playlists:', totalPlaylists);
-      console.log('Playlists with Thumbnail:', withThumbnail);
-      console.log('Playlists without Thumbnail:', totalPlaylists - withThumbnail);
+      console.log('\n📊 統計:');
+      console.log('総プレイリスト数:', totalPlaylists);
+      console.log('サムネイルあり:', withThumbnail);
+      console.log('サムネイルなし:', totalPlaylists - withThumbnail);
     } else {
-      console.log('⚠️  No cached playlists found');
+      console.log('⚠️  キャッシュされたプレイリストが見つかりません');
     }
 
     await mongoose.disconnect();
-    console.log('\n✅ Done');
+    console.log('\n✅ 完了');
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error);
+    console.error('❌ エラー:', error);
     process.exit(1);
   }
 }

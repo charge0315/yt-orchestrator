@@ -25,11 +25,11 @@ router.use(authenticate)
 router.get('/', async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId
-    if (!userId) return res.status(401).json({ error: 'User not authenticated' })
+    if (!userId) return res.status(401).json({ error: 'ユーザーが認証されていません' })
 
     // MongoDB キャッシュから登録チャンネル情報を取得（YouTube API 不使用）
     const cachedChannels = await CachedChannel.find({ userId }).sort({ cachedAt: -1 }).limit(20).lean()
-    console.log(`Found ${cachedChannels.length} cached channels for user ${userId}`)
+    console.log(`ユーザー ${userId} のキャッシュ済みチャンネル: ${cachedChannels.length} 件`)
 
     // 事前定義のおすすめ（クォータ消費ゼロ）
     const predefinedRecommendations = [
@@ -131,11 +131,11 @@ router.get('/', async (req: AuthRequest, res: Response) => {
         reason: rec.reason,
       }))
 
-    console.log(`Returning ${recommendations.length} recommendations (quota-free)`) 
+    console.log(`おすすめを返却します: ${recommendations.length} 件（クォータ消費なし）`) 
     res.json(recommendations)
   } catch (error) {
-    console.error('Failed to get recommendations:', error)
-    res.status(500).json({ error: 'Failed to get recommendations' })
+    console.error('おすすめ取得エラー:', error)
+    res.status(500).json({ error: 'おすすめの取得に失敗しました' })
   }
 })
 

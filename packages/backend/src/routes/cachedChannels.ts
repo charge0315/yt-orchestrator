@@ -47,8 +47,8 @@ router.get('/', async (req: AuthRequest, res: Response) => {
 
     return res.json(formatted);
   } catch (error) {
-    console.error('Error fetching channels:', error);
-    res.status(500).json({ error: 'Failed to fetch channels' });
+    console.error('チャンネル取得エラー:', error);
+    res.status(500).json({ error: 'チャンネルの取得に失敗しました' });
   }
 });
 

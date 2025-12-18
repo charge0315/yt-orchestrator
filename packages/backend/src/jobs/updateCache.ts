@@ -30,7 +30,7 @@ export function registerUserToken(
   expiry?: Date
 ) {
   userTokens.set(userId, { accessToken, refreshToken, expiry });
-  console.log(`Registered token for user: ${userId}`);
+  console.log(`ユーザーのトークンを登録しました: ${userId}`);
 }
 
 /**
@@ -39,7 +39,7 @@ export function registerUserToken(
  */
 export function unregisterUserToken(userId: string) {
   if (userTokens.delete(userId)) {
-    console.log(`Unregistered token for user: ${userId}`);
+    console.log(`ユーザーのトークンを解除しました: ${userId}`);
   }
 }
 
@@ -58,9 +58,9 @@ async function invalidateUserTokens(userId: string, reason?: string) {
         $set: { reauthRequired: true, reauthReason: reason || 'invalid_token' }
       }
     );
-    console.warn(`🚫 Invalidated tokens for user ${userId}${reason ? ` (${reason})` : ''}`);
+    console.warn(`🚫 ユーザー ${userId} のトークンを無効化しました${reason ? `（${reason}）` : ''}`);
   } catch (e) {
-    console.warn('Failed to invalidate user tokens:', e);
+    console.warn('ユーザートークンの無効化に失敗しました:', e);
   }
 }
 
@@ -78,7 +78,7 @@ async function ensureValidAccessToken(userId: string): Promise<string | null> {
   if (!isExpired) return tokenInfo.accessToken;
 
   if (!tokenInfo.refreshToken) {
-    console.warn(`Cannot refresh token for user ${userId}: no refresh token`);
+    console.warn(`ユーザー ${userId} のトークンを更新できません（リフレッシュトークンなし）`);
     return tokenInfo.accessToken; // 一旦既存のトークンで継続
   }
 
@@ -105,7 +105,7 @@ async function ensureValidAccessToken(userId: string): Promise<string | null> {
     }
 
     if (!newAccessToken) {
-      console.warn(`Failed to refresh access token for user ${userId}`);
+      console.warn(`ユーザー ${userId} のアクセストークン更新に失敗しました`);
       return tokenInfo.accessToken;
     }
 
@@ -130,10 +130,10 @@ async function ensureValidAccessToken(userId: string): Promise<string | null> {
         { new: false }
       );
     } catch (dbErr) {
-      console.warn('Failed to persist refreshed token:', dbErr);
+      console.warn('更新したトークンのDB保存に失敗しました:', dbErr);
     }
 
-    console.log(`🔁 Refreshed access token for user ${userId}`);
+    console.log(`🔁 ユーザー ${userId} のアクセストークンを更新しました`);
     return newAccessToken;
   } catch (err) {
     const anyErr: any = err;
@@ -142,12 +142,12 @@ async function ensureValidAccessToken(userId: string): Promise<string | null> {
       /invalid_grant/i.test(anyErr?.message || '');
 
     if (isInvalidGrant) {
-      console.error(`Token refresh invalid_grant for user ${userId}. Clearing tokens.`);
+      console.error(`ユーザー ${userId} のトークン更新で invalid_grant。トークンをクリアします。`);
       await invalidateUserTokens(userId, 'invalid_grant');
       return null;
     }
 
-    console.error(`Token refresh error for user ${userId}:`, err);
+    console.error(`ユーザー ${userId} のトークン更新エラー:`, err);
     return tokenInfo.accessToken;
   }
 }
@@ -156,7 +156,7 @@ async function ensureValidAccessToken(userId: string): Promise<string | null> {
  * 新規ユーザー向けに、すべてのチャンネル登録情報を取得してキャッシュに保存する
  */
 async function populateInitialChannels(userId: string, accessToken: string) {
-  console.log(`✨ Populating initial channel subscriptions for new user ${userId}...`);
+  console.log(`✨ 新規ユーザー ${userId} のチャンネル登録を初期取得します...`);
   const ytService = new YouTubeApiService(accessToken);
   const { CachedChannel } = await import('../models/CachedChannel.js');
   let allSubscriptions: any[] = [];
@@ -184,9 +184,9 @@ async function populateInitialChannels(userId: string, accessToken: string) {
     if (channelDocs.length > 0) {
       await CachedChannel.insertMany(channelDocs, { ordered: false });
     }
-    console.log(`✅ Populated ${channelDocs.length} channels for user ${userId}`);
+    console.log(`✅ ユーザー ${userId} に ${channelDocs.length} 件のチャンネルを投入しました`);
   } catch (error) {
-    console.error(`Error populating initial channels for user ${userId}:`, error);
+    console.error(`ユーザー ${userId} の初期チャンネル投入エラー:`, error);
   }
 }
 
@@ -194,7 +194,7 @@ async function populateInitialChannels(userId: string, accessToken: string) {
  * 新規ユーザー向けに、すべてのプレイリスト情報を取得してキャッシュに保存する
  */
 async function populateInitialPlaylists(userId: string, accessToken: string) {
-  console.log(`✨ Populating initial playlists for new user ${userId}...`);
+  console.log(`✨ 新規ユーザー ${userId} のプレイリストを初期取得します...`);
   const ytService = new YouTubeApiService(accessToken);
   const { CachedPlaylist } = await import('../models/CachedPlaylist.js');
   let allPlaylists: any[] = [];
@@ -226,9 +226,9 @@ async function populateInitialPlaylists(userId: string, accessToken: string) {
     if (playlistDocs.length > 0) {
       await CachedPlaylist.insertMany(playlistDocs, { ordered: false });
     }
-    console.log(`✅ Populated ${playlistDocs.length} playlists for user ${userId}`);
+    console.log(`✅ ユーザー ${userId} に ${playlistDocs.length} 件のプレイリストを投入しました`);
   } catch (error) {
-    console.error(`Error populating initial playlists for user ${userId}:`, error);
+    console.error(`ユーザー ${userId} の初期プレイリスト投入エラー:`, error);
   }
 }
 
@@ -242,7 +242,7 @@ async function updateChannelCache(userId: string, accessToken: string, force = f
     const cachedChannels = await CachedChannel.find({ userId });
 
     if (cachedChannels.length === 0) {
-      console.log(`⚠️  No cached channels found for user ${userId} to update.`);
+      console.log(`⚠️  ユーザー ${userId} に更新対象のキャッシュチャンネルがありません。`);
       return;
     }
 
@@ -253,19 +253,19 @@ async function updateChannelCache(userId: string, accessToken: string, force = f
           ? new Date('1970-01-01T00:00:00Z')
           : channel.latestVideoPublishedAt || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-        console.log(`[DEBUG] Fetching videos for channel: "${channel.channelTitle}" (ID: ${channel.channelId})`);
+        console.log(`[DEBUG] チャンネルの動画を取得中: "${channel.channelTitle}" (ID: ${channel.channelId})`);
         const newVideos = await ytService.getChannelVideosIncremental(channel.channelId, lastPublishedAt, 5);
-        console.log(`[DEBUG] Found ${newVideos.length} new videos for "${channel.channelTitle}".`);
+        console.log(`[DEBUG] "${channel.channelTitle}" の新規動画: ${newVideos.length} 件`);
         if (newVideos.length > 0) {
-            console.log(`[DEBUG] Latest video title for "${channel.channelTitle}": ${newVideos[0].snippet?.title}`);
+          console.log(`[DEBUG] "${channel.channelTitle}" の最新動画タイトル: ${newVideos[0].snippet?.title}`);
         }
 
         let isArtist = false;
         try {
             isArtist = await ytService.isMusicChannelAsync(channel.channelId, 5);
-            console.log(`[DEBUG] Channel "${channel.channelTitle}" isArtist check: ${isArtist}`);
+          console.log(`[DEBUG] "${channel.channelTitle}" の isArtist 判定: ${isArtist}`);
         } catch (e) {
-            console.error(`[DEBUG] isMusicChannelAsync failed for ${channel.channelTitle}`, e);
+          console.error(`[DEBUG] isMusicChannelAsync 失敗: ${channel.channelTitle}`, e);
         }
 
         if (newVideos.length > 0) {
@@ -284,23 +284,23 @@ async function updateChannelCache(userId: string, accessToken: string, force = f
           channel.cachedAt = new Date();
           channel.isArtist = isArtist;
 
-          console.log(`[DEBUG] SAVING channel "${channel.channelTitle}" with isArtist: ${channel.isArtist} and latestVideoTitle: ${channel.latestVideoTitle}`);
+          console.log(`[DEBUG] チャンネル保存: "${channel.channelTitle}" / isArtist=${channel.isArtist} / latestVideoTitle=${channel.latestVideoTitle}`);
           await channel.save();
           updatedCount++;
         } else if (channel.isArtist === undefined || force) {
           channel.isArtist = isArtist;
           channel.cachedAt = new Date();
-          console.log(`[DEBUG] SAVING channel "${channel.channelTitle}" with isArtist: ${channel.isArtist} (no new videos).`);
+          console.log(`[DEBUG] チャンネル保存: "${channel.channelTitle}" / isArtist=${channel.isArtist}（新規動画なし）`);
           await channel.save();
           updatedCount++;
         }
       } catch (error) {
-        console.error(`Error updating channel ${channel.channelTitle}:`, error);
+        console.error(`チャンネル更新エラー (${channel.channelTitle}):`, error);
       }
     }
-    console.log(`✅ Updated ${updatedCount}/${cachedChannels.length} channels for user ${userId} (${force ? 'force' : 'incremental'} mode)`);
+    console.log(`✅ ユーザー ${userId} のチャンネルを更新しました: ${updatedCount}/${cachedChannels.length}（${force ? '強制' : '差分'}モード）`);
   } catch (error) {
-    console.error('Error in updateChannelCache:', error);
+    console.error('updateChannelCache のエラー:', error);
   }
 }
 
@@ -314,7 +314,7 @@ async function updatePlaylistCache(userId: string, accessToken: string, force = 
     const cachedPlaylists = await CachedPlaylist.find({ userId });
 
     if (cachedPlaylists.length === 0) {
-      console.log(`⚠️  No cached playlists found for user ${userId} to update.`);
+      console.log(`⚠️  ユーザー ${userId} に更新対象のキャッシュプレイリストがありません。`);
       return;
     }
 
@@ -331,9 +331,9 @@ async function updatePlaylistCache(userId: string, accessToken: string, force = 
         let isMusic = playlist.isMusicPlaylist;
         try {
             isMusic = await ytService.isMusicPlaylistAsync(playlist.playlistId);
-            console.log(`[DEBUG] Playlist "${playlist.title}" isMusic check: ${isMusic}`);
+          console.log(`[DEBUG] プレイリスト "${playlist.title}" の isMusic 判定: ${isMusic}`);
         } catch(e) {
-            console.error(`[DEBUG] isMusicPlaylistAsync failed for ${playlist.title}`, e);
+          console.error(`[DEBUG] isMusicPlaylistAsync 失敗: ${playlist.title}`, e);
         }
 
         if (itemsResult.items.length > 0 || itemsResult.etag !== playlist.etag || force) {
@@ -347,23 +347,23 @@ async function updatePlaylistCache(userId: string, accessToken: string, force = 
             playlist.thumbnailUrl = thumbnailUrl || undefined;
           }
 
-          console.log(`[DEBUG] SAVING playlist "${playlist.title}" with isMusicPlaylist: ${playlist.isMusicPlaylist}`);
+          console.log(`[DEBUG] プレイリスト保存: "${playlist.title}" / isMusicPlaylist=${playlist.isMusicPlaylist}`);
           await playlist.save();
           updatedCount++;
         } else if (playlist.isMusicPlaylist === undefined) {
           playlist.isMusicPlaylist = isMusic;
           playlist.cachedAt = new Date();
-          console.log(`[DEBUG] SAVING playlist "${playlist.title}" with isMusicPlaylist: ${playlist.isMusicPlaylist} (no new items).`);
+          console.log(`[DEBUG] プレイリスト保存: "${playlist.title}" / isMusicPlaylist=${playlist.isMusicPlaylist}（新規アイテムなし）`);
           await playlist.save();
           updatedCount++;
         }
       } catch (error) {
-        console.error(`Error updating playlist ${playlist.title}:`, error);
+        console.error(`プレイリスト更新エラー (${playlist.title}):`, error);
       }
     }
-    console.log(`✅ Updated ${updatedCount}/${cachedPlaylists.length} playlists for user ${userId} (${force ? 'force' : 'ETag'} mode)`);
+    console.log(`✅ ユーザー ${userId} のプレイリストを更新しました: ${updatedCount}/${cachedPlaylists.length}（${force ? '強制' : 'ETag'}モード）`);
   } catch (error) {
-    console.error('Error in updatePlaylistCache:', error);
+    console.error('updatePlaylistCache のエラー:', error);
   }
 }
 
@@ -371,13 +371,13 @@ async function updatePlaylistCache(userId: string, accessToken: string, force = 
  * すべてのユーザーのキャッシュを更新
  */
 export async function updateAllCaches(force = false) {
-  console.log(force ? '🔄 Starting force cache update...' : '🔄 Starting background cache update...');
+  console.log(force ? '🔄 強制キャッシュ更新を開始...' : '🔄 バックグラウンドキャッシュ更新を開始...');
 
   for (const [userId] of userTokens) {
     try {
       const accessToken = await ensureValidAccessToken(userId);
       if (!accessToken) {
-        console.warn(`Skip cache update: no token for user ${userId}`);
+        console.warn(`ユーザー ${userId} のキャッシュ更新をスキップ（トークンなし）`);
         continue;
       }
 
@@ -388,10 +388,10 @@ export async function updateAllCaches(force = false) {
       const playlistCount = await CachedPlaylist.countDocuments({ userId });
 
       if (channelCount === 0 && playlistCount === 0 && force) {
-        console.log(`✨ First time setup for user ${userId}. Populating all data...`);
+        console.log(`✨ ユーザー ${userId} 初回セットアップ: 全データを投入します...`);
         await populateInitialChannels(userId, accessToken);
         await populateInitialPlaylists(userId, accessToken);
-        console.log(`[DEBUG] Initial population finished. Now running update on populated cache...`);
+        console.log('[DEBUG] 初期投入が完了。投入済みキャッシュに対して更新処理を実行します...');
         await updateChannelCache(userId, accessToken, true);
         await updatePlaylistCache(userId, accessToken, true);
       } else {
@@ -399,11 +399,11 @@ export async function updateAllCaches(force = false) {
         await updatePlaylistCache(userId, accessToken, force);
       }
     } catch (error) {
-      console.error(`Error updating cache for user ${userId}:`, error);
+      console.error(`ユーザー ${userId} のキャッシュ更新エラー:`, error);
     }
   }
 
-  console.log(force ? '✅ Force cache update completed' : '✅ Background cache update completed');
+  console.log(force ? '✅ 強制キャッシュ更新が完了しました' : '✅ バックグラウンドキャッシュ更新が完了しました');
 }
 
 /**
@@ -416,7 +416,7 @@ export function startCacheUpdateJob() {
     updateAllCaches(false);
   });
 
-  console.log(`✅ Cache update job scheduled: ${schedule}`);
+  console.log(`✅ キャッシュ更新ジョブをスケジュールしました: ${schedule}`);
 
   setTimeout(() => updateAllCaches(true), 5000);
 }

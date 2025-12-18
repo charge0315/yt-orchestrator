@@ -21,8 +21,8 @@ router.get('/auth/status', authenticate, async (_req: AuthRequest, res: Response
   try {
     res.json({ connected: true, message: 'YouTube Data API v3 を利用中のため、常に接続済みです' })
   } catch (error) {
-    console.error('Error checking YouTube Music status:', error)
-    res.status(500).json({ error: 'Failed to check YouTube Music status' })
+    console.error('YouTube Music 状態確認エラー:', error)
+    res.status(500).json({ error: 'YouTube Music の状態確認に失敗しました' })
   }
 })
 
@@ -41,8 +41,8 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
         const cacheAge = Date.now() - oldestCache.cachedAt.getTime()
         const cacheAgeMinutes = Math.round(cacheAge / 1000 / 60)
         const cacheAgeHours = Math.round(cacheAge / 1000 / 60 / 60)
-        const ageDisplay = cacheAgeHours >= 1 ? `${cacheAgeHours}h old` : `${cacheAgeMinutes}min old`
-        console.log(`📀 Returning ${cachedPlaylists.length} YouTube Music playlists from MongoDB cache (${ageDisplay})`)
+        const ageDisplay = cacheAgeHours >= 1 ? `${cacheAgeHours}時間前` : `${cacheAgeMinutes}分前`
+        console.log(`📀 MongoDB キャッシュから YouTube Music プレイリストを返却します: ${cachedPlaylists.length} 件（${ageDisplay}）`)
 
         const formatted = cachedPlaylists.map((pl) => ({
           kind: 'youtube#playlist',
@@ -66,10 +66,10 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
       }
     }
 
-    console.log('⚠️ MongoDB not connected or no cache for music playlists')
+    console.log('⚠️ MongoDB 未接続、または音楽プレイリストのキャッシュがありません')
     res.json({ items: [], nextPageToken: undefined })
   } catch (error) {
-    console.error('Error fetching YouTube Music playlists:', error)
+    console.error('YouTube Music プレイリスト取得エラー:', error)
     res.json({ items: [], nextPageToken: undefined })
   }
 })
@@ -82,7 +82,7 @@ router.get('/playlists/:id', authenticate, async (req: AuthRequest, res: Respons
   try {
     const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
     const playlist = await yt.getPlaylist(req.params.id)
-    if (!playlist) return res.status(404).json({ error: 'Playlist not found' })
+    if (!playlist) return res.status(404).json({ error: 'プレイリストが見つかりません' })
 
     const itemsResult = await yt.getPlaylistItems(req.params.id)
     const transformed = {
@@ -93,7 +93,7 @@ router.get('/playlists/:id', authenticate, async (req: AuthRequest, res: Respons
       songs: (itemsResult.items || []).map((item: any) => ({
         videoId: item.snippet?.resourceId?.videoId,
         title: item.snippet?.title,
-        artist: item.snippet?.videoOwnerChannelTitle || 'Unknown Artist',
+        artist: item.snippet?.videoOwnerChannelTitle || '不明なアーティスト',
         thumbnail: item.snippet?.thumbnails?.default?.url,
         addedAt: item.snippet?.publishedAt ? new Date(item.snippet.publishedAt) : undefined,
       })),
@@ -102,8 +102,8 @@ router.get('/playlists/:id', authenticate, async (req: AuthRequest, res: Respons
     }
     res.json(transformed)
   } catch (error) {
-    console.error('Error fetching YouTube Music playlist:', error)
-    res.status(500).json({ error: 'Failed to fetch YouTube Music playlist' })
+    console.error('YouTube Music プレイリスト詳細取得エラー:', error)
+    res.status(500).json({ error: 'YouTube Music プレイリストの取得に失敗しました' })
   }
 })
 
@@ -114,20 +114,20 @@ router.get('/playlists/:id', authenticate, async (req: AuthRequest, res: Respons
 router.get('/search', authenticate, async (req: AuthRequest, res: Response) => {
   try {
     const { query } = req.query
-    if (!query || typeof query !== 'string') return res.status(400).json({ error: 'Search query is required' })
+    if (!query || typeof query !== 'string') return res.status(400).json({ error: '検索クエリが必要です' })
 
     const yt = YouTubeApiService.createFromAccessToken(req.session.youtubeAccessToken)
     const results = await yt.searchVideos(query, 20)
     const transformed = results.map((video: any) => ({
       videoId: video.id?.videoId,
       title: video.snippet?.title,
-      artist: video.snippet?.channelTitle || 'Unknown Artist',
+      artist: video.snippet?.channelTitle || '不明なアーティスト',
       thumbnail: video.snippet?.thumbnails?.default?.url,
     }))
     res.json(transformed)
   } catch (error) {
-    console.error('Error searching YouTube Music:', error)
-    res.status(500).json({ error: 'Failed to search YouTube Music' })
+    console.error('YouTube Music 検索エラー:', error)
+    res.status(500).json({ error: 'YouTube Music の検索に失敗しました' })
   }
 })
 
