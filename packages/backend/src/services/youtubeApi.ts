@@ -77,7 +77,7 @@ export class YouTubeApiService {
     if (cached) return cached;
 
     try {
-      // ETagを使った条件付きリクエスト（304 Not Modified対応）
+      // ETagを使った条件付きリクエスト（304: 未変更）
       const headers: any = {};
       if (etag) {
         headers['If-None-Match'] = etag;
@@ -99,7 +99,7 @@ export class YouTubeApiService {
       this.setCache(cacheKey, result);
       return result;
     } catch (error: any) {
-      // 304 Not Modified の場合、変更なしなのでキャッシュを返す
+      // 304（未変更）の場合、変更なしなのでキャッシュを返す
       if (error?.code === 304) {
         console.log('📊 ETag 一致: プレイリストは未更新です（クォータ節約）');
         const cached = this.getFromCache(cacheKey);
@@ -378,7 +378,7 @@ export class YouTubeApiService {
         etag: response.data.etag
       };
     } catch (error: any) {
-      // 304 Not Modified の場合
+      // 304（未変更）の場合
       if (error?.code === 304) {
         console.log(`📊 ETag 一致: プレイリストアイテムは未更新です（${playlistId} / クォータ節約）`);
         return {
