@@ -18,10 +18,13 @@ const router = express.Router();
  * YouTube APIアクセスに必要なトークンを取得するために使用
  */
 function getOAuth2Client() {
+  const backendBaseUrl = (process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, '');
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${backendBaseUrl}/api/auth/google/callback`;
+
   return new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
-    'http://localhost:3001/api/auth/google/callback'
+    redirectUri
   );
 }
 
@@ -134,6 +137,9 @@ router.get('/me', authenticate, async (req: AuthRequest, res: Response) => {
 router.get('/google', (req: Request, res: Response) => {
   // 認可URLを生成してGoogleのOAuth同意画面にリダイレクト
   const oauth2Client = getOAuth2Client();
+  try {
+    console.log('OAuth redirect_uri:', (oauth2Client as any).redirectUri || '(unknown)');
+  } catch {}
 
   // 要求するスコープ（権限）
   const scopes = [

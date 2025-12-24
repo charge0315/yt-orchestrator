@@ -14,6 +14,10 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL = 60 * 60 * 1000; // 60分（クォータ節約強化: 30分→60分）
 
+export function clearYouTubeApiMemoryCache() {
+  cache.clear();
+}
+
 /**
  * YouTube Music関連の公式チャンネルID
  * これらのチャンネルから生成されたプレイリストは音楽系と判定

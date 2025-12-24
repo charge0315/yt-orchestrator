@@ -5,7 +5,7 @@
 import axios from 'axios'
 
 // バックエンドAPIのベースURL（環境変数から取得、デフォルトはlocalhost）
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 /**
  * Axiosクライアントインスタンス
@@ -299,14 +299,13 @@ export const youtubeDataApi = {
 }
 
 // ========================================
-// YouTube Music API（ytmusicapi）
+// YouTube Music API（YouTube Data API v3 互換）
 // ========================================
 export const ytmusicApi = {
-  saveCookie: (cookie: string) => apiClient.post('/ytmusic/auth/cookie', { cookie }),
   getAuthStatus: () => apiClient.get<{ connected: boolean }>('/ytmusic/auth/status'),
-  disconnect: () => apiClient.post('/ytmusic/auth/disconnect'),
-  // 初回は force=1 でAPI側を起動させ、以降はキャッシュが使われます
-  getPlaylists: () => apiClient.get<Playlist[]>('/ytmusic/playlists', { params: { force: 1 } }),
+  // 通常はキャッシュ優先。必要なら refresh=1 を付けて再判定を促します。
+  getPlaylists: (opts?: { refresh?: boolean }) =>
+    apiClient.get<Playlist[]>('/ytmusic/playlists', { params: opts?.refresh ? { refresh: 1 } : undefined }),
   getPlaylist: (id: string) => apiClient.get<Playlist>(`/ytmusic/playlists/${id}`),
   searchSongs: (query: string) => apiClient.get<Song[]>('/ytmusic/search', { params: { query } })
 }

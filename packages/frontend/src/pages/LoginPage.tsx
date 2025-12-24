@@ -3,6 +3,7 @@
  * - バックエンドの Google OAuth エンドポイントへリダイレクトして認証を開始します。
  */
 import './LoginPage.css'
+import { apiClient } from '../api/client'
 
 function LoginPage() {
   /**
@@ -10,7 +11,8 @@ function LoginPage() {
    */
   const handleGoogleLogin = () => {
     // バックエンドのOAuth認証エンドポイントにリダイレクト
-    window.location.href = 'http://localhost:3001/api/auth/google'
+    const baseUrl = (apiClient.defaults.baseURL || '/api').toString().replace(/\/+$/, '')
+    window.location.href = `${baseUrl}/auth/google`
   }
 
   return (

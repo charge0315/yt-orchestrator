@@ -2,7 +2,7 @@
  * Vite（フロントエンド開発サーバー/ビルド）の設定。
  *
  * - 開発サーバーは外部アクセス可能にするため `host: 0.0.0.0`
- * - バックエンドAPIは `/api` を `localhost:3001` にプロキシ
+ * - バックエンドAPIは `/api` を `localhost:3000` にプロキシ
  */
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
@@ -15,7 +15,7 @@ export default defineConfig({
     port: 5175,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3000',
         changeOrigin: true
       }
     }

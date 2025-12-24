@@ -84,6 +84,12 @@ npm install
 GOOGLE_CLIENT_ID=your_google_client_id_here
 GOOGLE_CLIENT_SECRET=your_google_client_secret_here
 
+# OAuth Redirect URI（重要）
+# Google Cloud Console の OAuth クライアントに「承認済みのリダイレクト URI」として登録する値と完全一致させてください。
+# 例: http://localhost:3000/api/auth/google/callback
+BACKEND_URL=http://localhost:3000
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
+
 # MongoDB接続URI
 MONGODB_URI=mongodb://localhost:27017/yt-orchestrator
 
@@ -94,20 +100,30 @@ SESSION_SECRET=your_random_secret_key_here
 FRONTEND_URL=http://localhost:5173
 
 # キャッシュ更新ジョブの設定
-# trueに設定すると、起動時と定期的(30分毎)にキャッシュが更新されます
+# trueに設定すると、定期的にキャッシュが更新されます（YouTube API クォータを消費します）
 ENABLE_CACHE_UPDATE_JOB=true
+# 起動時の自動更新はクォータを消費しやすいので opt-in
+RUN_CACHE_UPDATE_ON_STARTUP=false
+# 起動時に実行する場合、強制モード（より重い）にするか
+FORCE_CACHE_UPDATE_ON_STARTUP=false
 CACHE_UPDATE_SCHEDULE=0 */30 * * * *
 ```
 
 **`packages/frontend/.env` の設定:**
 
 ```
-VITE_API_URL=http://localhost:3001/api
+VITE_API_URL=http://localhost:3000/api
 ```
 
 **重要:** 初回起動時やデータを完全に再同期したい場合は、必ず `ENABLE_CACHE_UPDATE_JOB=true` に設定してください。
 
-### 4. 開発サーバーの起動
+### 4. `400: redirect_uri_mismatch` が出る場合
+
+- Google Cloud Console → 対象の OAuth 2.0 クライアント → 「承認済みのリダイレクト URI」に `GOOGLE_REDIRECT_URI` を登録してください。
+- ローカル開発の例: `http://localhost:3000/api/auth/google/callback`
+- `FRONTEND_URL` は Vite の起動ログに表示される実際のURL（例: `http://localhost:5175`）と合わせてください。
+
+### 5. 開発サーバーの起動
 
 プロジェクトのルートディレクトリで以下のコマンドを実行します。
 
@@ -116,7 +132,7 @@ npm run dev
 ```
 
 - フロントエンド: `http://localhost:5173`
-- バックエンドAPI: `http://localhost:3001`
+- バックエンドAPI: `http://localhost:3000`
 
 ## 🧱 ビルド
 

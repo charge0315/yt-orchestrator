@@ -8,6 +8,8 @@
 import cron from 'node-cron';
 import { YouTubeApiService } from '../services/youtubeApi.js';
 import { google } from 'googleapis';
+import mongoose from 'mongoose';
+import { clearYouTubeApiMemoryCache } from '../services/youtubeApi.js';
 
 // ユーザーのトークン情報をメモリに保持（セッション/DBから取得）
 // 注意: プロセス再起動で消えるため、起動時にDBからプリロードします（index.ts参照）。
@@ -407,6 +409,109 @@ export async function updateAllCaches(force = false) {
 }
 
 /**
+ * 指定ユーザーのキャッシュのみ更新（初回投入 + isArtist/isMusicPlaylist 判定含む）
+ * - ログイン直後の初回表示や、空キャッシュの救済用途
+ */
+export async function updateUserCaches(userId: string, force = false): Promise<boolean> {
+  try {
+    const accessToken = await ensureValidAccessToken(userId);
+    if (!accessToken) {
+      console.warn(`ユーザー ${userId} のキャッシュ更新をスキップ（トークンなし）`);
+      return false;
+    }
+
+    const { CachedChannel } = await import('../models/CachedChannel.js');
+    const { CachedPlaylist } = await import('../models/CachedPlaylist.js');
+
+    const channelCount = await CachedChannel.countDocuments({ userId });
+    const playlistCount = await CachedPlaylist.countDocuments({ userId });
+
+    if (channelCount === 0 && playlistCount === 0 && force) {
+      console.log(`✨ ユーザー ${userId} 初回セットアップ: 全データを投入します...`);
+      await populateInitialChannels(userId, accessToken);
+      await populateInitialPlaylists(userId, accessToken);
+      console.log('[DEBUG] 初期投入が完了。投入済みキャッシュに対して更新処理を実行します...');
+      await updateChannelCache(userId, accessToken, true);
+      await updatePlaylistCache(userId, accessToken, true);
+      return true;
+    }
+
+    await updateChannelCache(userId, accessToken, force);
+    await updatePlaylistCache(userId, accessToken, force);
+    return true;
+  } catch (error) {
+    console.error(`ユーザー ${userId} のキャッシュ更新エラー:`, error);
+    return false;
+  }
+}
+
+export type RefreshUserCacheResult =
+  | {
+      ok: true;
+      userId: string;
+      deleted: { channels: number; playlists: number };
+      repopulated: { channels: number; playlists: number };
+      updatedAt: string;
+    }
+  | { ok: false; userId: string; error: string };
+
+/**
+ * 指定ユーザーの MongoDB キャッシュをクリアして、YouTube API から強制的に再同期します。
+ * - CachedChannel / CachedPlaylist を削除
+ * - 初期投入（subscriptions/playlists）
+ * - 強制更新（最新動画/音楽判定/ETag など）
+ */
+export async function refreshUserCache(userId: string): Promise<RefreshUserCacheResult> {
+  if (!userId) return { ok: false, userId: '', error: 'missing_user_id' };
+
+  if (mongoose.connection.readyState !== 1) {
+    return { ok: false, userId, error: 'mongodb_not_connected' };
+  }
+
+  const accessToken = await ensureValidAccessToken(userId);
+  if (!accessToken) {
+    return { ok: false, userId, error: 'no_access_token' };
+  }
+
+  try {
+    clearYouTubeApiMemoryCache();
+  } catch {}
+
+  try {
+    const { CachedChannel } = await import('../models/CachedChannel.js');
+    const { CachedPlaylist } = await import('../models/CachedPlaylist.js');
+
+    const deleteChannelsRes = await CachedChannel.deleteMany({ userId });
+    const deletePlaylistsRes = await CachedPlaylist.deleteMany({ userId });
+
+    await populateInitialChannels(userId, accessToken);
+    await populateInitialPlaylists(userId, accessToken);
+
+    const repopulatedChannels = await CachedChannel.countDocuments({ userId });
+    const repopulatedPlaylists = await CachedPlaylist.countDocuments({ userId });
+
+    await updateChannelCache(userId, accessToken, true);
+    await updatePlaylistCache(userId, accessToken, true);
+
+    return {
+      ok: true,
+      userId,
+      deleted: {
+        channels: deleteChannelsRes.deletedCount || 0,
+        playlists: deletePlaylistsRes.deletedCount || 0,
+      },
+      repopulated: {
+        channels: repopulatedChannels,
+        playlists: repopulatedPlaylists,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+  } catch (e: any) {
+    return { ok: false, userId, error: e?.message || 'refresh_failed' };
+  }
+}
+
+/**
  * キャッシュ更新ジョブを開始
  */
 export function startCacheUpdateJob() {
@@ -418,5 +523,11 @@ export function startCacheUpdateJob() {
 
   console.log(`✅ キャッシュ更新ジョブをスケジュールしました: ${schedule}`);
 
-  setTimeout(() => updateAllCaches(true), 5000);
+  // 起動時の自動実行はクォータを消費しやすいので、明示的に opt-in とする
+  // - RUN_CACHE_UPDATE_ON_STARTUP=true で起動時に実行
+  // - FORCE_CACHE_UPDATE_ON_STARTUP=true なら強制モード（より重い）
+  if (process.env.RUN_CACHE_UPDATE_ON_STARTUP === 'true') {
+    const force = process.env.FORCE_CACHE_UPDATE_ON_STARTUP === 'true';
+    setTimeout(() => updateAllCaches(force), 5000);
+  }
 }

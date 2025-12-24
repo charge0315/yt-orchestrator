@@ -10,6 +10,7 @@ import { YouTubeApiService } from '../services/youtubeApi.js'
 import { CachedPlaylist } from '../models/CachedPlaylist.js'
 import mongoose from 'mongoose'
 import { acquireYouTubeDaily } from '../utils/dailyGate.js'
+import { updateUserCaches } from '../jobs/updateCache.js'
 
 const router = express.Router()
 
@@ -33,9 +34,16 @@ router.get('/auth/status', authenticate, async (_req: AuthRequest, res: Response
  */
 router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) => {
   try {
+    const userId = req.userId
+    if (!userId) {
+      return res.status(401).json({ error: 'unauthorized' })
+    }
+
+    const force = String(req.query.force || '') === '1' || String(req.query.refresh || '') === '1' || String(req.query.force || '') === 'true' || String(req.query.refresh || '') === 'true'
+
     // MongoDBキャッシュのみで返却
     if (mongoose.connection.readyState === 1) {
-      const cachedPlaylists = await CachedPlaylist.find({ userId: req.userId, isMusicPlaylist: true })
+      const cachedPlaylists = await CachedPlaylist.find({ userId, isMusicPlaylist: true })
       if (cachedPlaylists.length > 0) {
         const oldestCache = cachedPlaylists.reduce((oldest, current) => (current.cachedAt < oldest.cachedAt ? current : oldest))
         const cacheAge = Date.now() - oldestCache.cachedAt.getTime()
@@ -63,6 +71,45 @@ router.get('/playlists', authenticate, async (req: AuthRequest, res: Response) =
         }))
 
         return res.json({ items: formatted, nextPageToken: undefined })
+      }
+    }
+
+    // キャッシュが無い/未判定の場合は、必要に応じてキャッシュ更新を試みる
+    if (mongoose.connection.readyState === 1) {
+      const canUseToday = await acquireYouTubeDaily(userId)
+      if (!canUseToday && force) {
+        return res.status(429).json({ error: 'daily_limit', message: '本日は既に強制更新を実行済みです。時間をおいて再試行してください。' })
+      }
+
+      if (canUseToday) {
+        try {
+          console.log(`🔄 YouTube Music プレイリストのキャッシュ更新を試行します（user=${userId} / force=${force} / daily=${canUseToday}）`)
+          await updateUserCaches(userId, true)
+        } catch (e) {
+          console.warn('YouTube Music キャッシュ更新の試行に失敗しました:', e)
+        }
+
+        const refreshed = await CachedPlaylist.find({ userId, isMusicPlaylist: true })
+        if (refreshed.length > 0) {
+          const formatted = refreshed.map((pl) => ({
+            kind: 'youtube#playlist',
+            id: pl.playlistId,
+            snippet: {
+              title: pl.title,
+              description: pl.description,
+              thumbnails: {
+                default: { url: pl.thumbnailUrl },
+                medium: { url: pl.thumbnailUrl },
+                high: { url: pl.thumbnailUrl },
+              },
+              channelId: pl.channelId,
+              channelTitle: pl.channelTitle,
+            },
+            contentDetails: { itemCount: pl.itemCount },
+            status: { privacyStatus: pl.privacy },
+          }))
+          return res.json({ items: formatted, nextPageToken: undefined })
+        }
       }
     }
 

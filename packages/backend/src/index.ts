@@ -23,6 +23,7 @@ import { startCacheUpdateJob } from './jobs/updateCache.js'
 import songRoutes from './routes/songs.js'
 import recommendationRoutes from './routes/recommendations.js'
 import authRoutes from './routes/auth.js'
+import cacheRoutes from './routes/cache.js'
 import youtubeRoutes from './routes/youtube.js'
 import ytmusicRoutes from './routes/ytmusic.js'
 import allPlaylistsRoutes from './routes/allPlaylists.js'
@@ -53,7 +54,7 @@ console.log('.env path:', ENV_PATH)
 console.log('MONGODB_URI:', process.env.MONGODB_URI ? '設定済み' : '未設定')
 
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT || 3000
 
 // フロントエンドの開発ポートと FRONTEND_URL を許可
 const allowedOrigins = [
@@ -106,6 +107,9 @@ app.use(
 
 // 認証関連（セッションベースの認証）
 app.use('/api/auth', authRoutes)
+
+// キャッシュ操作
+app.use('/api/cache', cacheRoutes)
 
 // コンテンツ
 app.use('/api/songs', songRoutes)
