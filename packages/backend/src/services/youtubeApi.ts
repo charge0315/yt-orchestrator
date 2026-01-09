@@ -28,6 +28,18 @@ const YOUTUBE_MUSIC_CHANNEL_IDS = [
   'UCfM3zsQsOnfWNUppiycmBuw', // Music Lab
 ];
 
+// ランタイムで追加したいチャンネルIDを環境変数で上書き可能にする。
+// 例: YOUTUBE_MUSIC_CHANNEL_IDS=UCxxxx,UCyyyy
+const RUNTIME_YOUTUBE_MUSIC_CHANNEL_IDS = (process.env.YOUTUBE_MUSIC_CHANNEL_IDS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const EFFECTIVE_YOUTUBE_MUSIC_CHANNEL_IDS = Array.from(new Set([
+  ...YOUTUBE_MUSIC_CHANNEL_IDS,
+  ...RUNTIME_YOUTUBE_MUSIC_CHANNEL_IDS,
+]));
+
 // 追加の判定用: チャンネル名ベースで音楽系とみなすための代表的なチャンネル名
 const YOUTUBE_MUSIC_CHANNEL_TITLES = [
   'mr suicide sheep',
@@ -145,7 +157,7 @@ export class YouTubeApiService {
    * @returns YouTube Music公式チャンネルの場合true
    */
   static isYouTubeMusicChannel(channelId: string): boolean {
-    return YOUTUBE_MUSIC_CHANNEL_IDS.includes(channelId);
+    return EFFECTIVE_YOUTUBE_MUSIC_CHANNEL_IDS.includes(channelId);
   }
 
   /**
