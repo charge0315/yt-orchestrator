@@ -111,3 +111,49 @@ Google OAuth時にYouTubeアクセストークンを取得し、バックエン�
 ### 環境変数
 
 - キャッシュ更新のスケジュールを `CACHE_UPDATE_SCHEDULE`（cron）で上書き可能です。指定がない場合は30分毎で実行します。
+
+---
+
+# Spring WebFlux 版（yt-orchestrator_spring）
+
+このリポジトリには、Node/Express 版とは別に Spring Boot + WebFlux の移行先プロジェクトを追加しています。
+
+## 場所
+
+- Springプロジェクト: [yt-orchestrator_spring](yt-orchestrator_spring)
+
+## 起動/テスト
+
+- テスト: `cd yt-orchestrator_spring && .\gradlew.bat test`
+- 起動: `cd yt-orchestrator_spring && .\gradlew.bat bootRun`
+
+既定ポートは `8080` です。
+
+## 必要な環境変数（Spring版）
+
+最低限:
+
+
+- `FRONTEND_URL`（例: `http://localhost:5173`）
+- `BACKEND_URL`（例: `http://localhost:8080`）
+
+MongoDB（キャッシュ永続化に必要）:
+
+- `SPRING_DATA_MONGODB_URI`（例: `mongodb://localhost:27017/yt-orchestrator`）
+
+補足:
+
+- 現状、チャンネル/アーティスト（`/api/channels` / `/api/artists`）と YouTube チャンネル管理（`/api/youtube/channels`）は、同一の `cached_channels` コレクションに統合しています。
+- `GOOGLE_SCOPES`（任意: OAuth scope を空白/カンマ区切りで指定。未指定なら `youtube` + `userinfo` 系を使用）
+
+## 現状（移行の足場）
+
+- `/api/health` を含む主要 `/api/*` エンドポイントはスタブ実装済み
+- セッションベース前提のため、認証必須エンドポイントは未ログインだと `401` を返します
+- Google OAuth（`/api/auth/google` / `/api/auth/google/callback`）は実装済み（セッションにトークン/ユーザー情報を保存）
+- YouTubeプレイリスト（動画）: 一覧/アイテム取得/追加削除/CRUD（作成・更新・削除）を実装済み
+- YouTubeチャンネル（`/api/youtube/channels`）: 登録/解除/最新動画/手動更新を実装（MongoDB の `cached_channels` に永続化）
+- `latestVideos` は `duration`（ISO 8601）と `viewCount` も返します（取得できた場合）
+- YouTubeレコメンド（`/api/youtube/recommendations/*`）: 現状は空配列（スタブ）
+
+次の移行ステップは、Node版の `packages/backend/src/routes/*` と同等の処理を、WebFluxのサービス層に順に移植していく形になります。

@@ -1,0 +1,821 @@
+﻿{
+    "ComputerName":  "127.0.0.1",
+    "RemoteAddress":  {
+                          "Address":  16777343,
+                          "AddressFamily":  2,
+                          "ScopeId":  null,
+                          "IsIPv6Multicast":  false,
+                          "IsIPv6LinkLocal":  false,
+                          "IsIPv6SiteLocal":  false,
+                          "IsIPv6Teredo":  false,
+                          "IsIPv4MappedToIPv6":  false
+                      },
+    "ResolvedAddresses":  [
+                              {
+                                  "Address":  16777343,
+                                  "AddressFamily":  2,
+                                  "ScopeId":  null,
+                                  "IsIPv6Multicast":  false,
+                                  "IsIPv6LinkLocal":  false,
+                                  "IsIPv6SiteLocal":  false,
+                                  "IsIPv6Teredo":  false,
+                                  "IsIPv4MappedToIPv6":  false
+                              }
+                          ],
+    "PingSucceeded":  true,
+    "PingReplyDetails":  {
+                             "Status":  0,
+                             "Address":  {
+                                             "Address":  16777343,
+                                             "AddressFamily":  2,
+                                             "ScopeId":  null,
+                                             "IsIPv6Multicast":  false,
+                                             "IsIPv6LinkLocal":  false,
+                                             "IsIPv6SiteLocal":  false,
+                                             "IsIPv6Teredo":  false,
+                                             "IsIPv4MappedToIPv6":  false
+                                         },
+                             "RoundtripTime":  0,
+                             "Options":  {
+                                             "Ttl":  128,
+                                             "DontFragment":  false
+                                         },
+                             "Buffer":  [
+                                            97,
+                                            98,
+                                            99,
+                                            100,
+                                            101,
+                                            102,
+                                            103,
+                                            104,
+                                            105,
+                                            106,
+                                            107,
+                                            108,
+                                            109,
+                                            110,
+                                            111,
+                                            112,
+                                            113,
+                                            114,
+                                            115,
+                                            116,
+                                            117,
+                                            118,
+                                            119,
+                                            97,
+                                            98,
+                                            99,
+                                            100,
+                                            101,
+                                            102,
+                                            103,
+                                            104,
+                                            105
+                                        ]
+                         },
+    "TcpClientSocket":  null,
+    "TcpTestSucceeded":  false,
+    "RemotePort":  8081,
+    "TraceRoute":  null,
+    "Detailed":  false,
+    "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+    "InterfaceIndex":  1,
+    "InterfaceDescription":  "",
+    "NetAdapter":  null,
+    "NetRoute":  {
+                     "CimClass":  {
+                                      "CimSuperClassName":  "CIM_NextHopRoute",
+                                      "CimSuperClass":  {
+                                                            "CimSuperClassName":  "CIM_ManagedElement",
+                                                            "CimSuperClass":  "ROOT/standardcimv2:CIM_ManagedElement",
+                                                            "CimClassProperties":  "Caption Description ElementName InstanceID AdminDistance DestinationAddress IsStatic RouteMetric TypeOfRoute = 3",
+                                                            "CimClassQualifiers":  "UMLPackagePath = \"CIM::Network::Routes\" locale = 1033",
+                                                            "CimClassMethods":  "",
+                                                            "CimSystemProperties":  "Microsoft.Management.Infrastructure.CimSystemProperties"
+                                                        },
+                                      "CimClassProperties":  [
+                                                                 "Caption",
+                                                                 "Description",
+                                                                 "ElementName",
+                                                                 "InstanceID",
+                                                                 "AdminDistance",
+                                                                 "DestinationAddress",
+                                                                 "IsStatic",
+                                                                 "RouteMetric",
+                                                                 "TypeOfRoute = 3",
+                                                                 "AddressFamily",
+                                                                 "CompartmentId",
+                                                                 "DestinationPrefix",
+                                                                 "InterfaceAlias",
+                                                                 "InterfaceIndex",
+                                                                 "InterfaceMetric",
+                                                                 "NextHop",
+                                                                 "PreferredLifetime",
+                                                                 "Protocol",
+                                                                 "Publish",
+                                                                 "State",
+                                                                 "Store",
+                                                                 "ValidLifetime"
+                                                             ],
+                                      "CimClassQualifiers":  [
+                                                                 "UMLPackagePath = \"CIM::Network::Routes\"",
+                                                                 "ClassVersion = \"1.0.0\"",
+                                                                 "dynamic = True",
+                                                                 "locale = 1033",
+                                                                 "provider = \"nettcpip\""
+                                                             ],
+                                      "CimClassMethods":  [
+                                                              "Create",
+                                                              "Find"
+                                                          ],
+                                      "CimSystemProperties":  {
+                                                                  "Namespace":  "root/standardcimv2",
+                                                                  "ServerName":  "ATOMMAN",
+                                                                  "ClassName":  "MSFT_NetRoute",
+                                                                  "Path":  null
+                                                              }
+                                  },
+                     "CimInstanceProperties":  [
+                                                   {
+                                                       "Name":  "Caption",
+                                                       "Value":  null,
+                                                       "CimType":  14,
+                                                       "Flags":  "Property, NotModified, NullValue",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "Description",
+                                                       "Value":  null,
+                                                       "CimType":  14,
+                                                       "Flags":  "Property, NotModified, NullValue",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "ElementName",
+                                                       "Value":  null,
+                                                       "CimType":  14,
+                                                       "Flags":  "Property, NotModified, NullValue",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "InstanceID",
+                                                       "Value":  ";\u003cA8:8:8;9=\u003c55;55:8:8:8:55;",
+                                                       "CimType":  14,
+                                                       "Flags":  "Property, Key, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "AdminDistance",
+                                                       "Value":  null,
+                                                       "CimType":  4,
+                                                       "Flags":  "Property, NotModified, NullValue",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "DestinationAddress",
+                                                       "Value":  null,
+                                                       "CimType":  14,
+                                                       "Flags":  "Property, NotModified, NullValue",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "IsStatic",
+                                                       "Value":  null,
+                                                       "CimType":  1,
+                                                       "Flags":  "Property, NotModified, NullValue",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "RouteMetric",
+                                                       "Value":  256,
+                                                       "CimType":  4,
+                                                       "Flags":  "Property, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "TypeOfRoute",
+                                                       "Value":  3,
+                                                       "CimType":  4,
+                                                       "Flags":  "Property, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "AddressFamily",
+                                                       "Value":  2,
+                                                       "CimType":  4,
+                                                       "Flags":  "Property, ReadOnly, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "CompartmentId",
+                                                       "Value":  1,
+                                                       "CimType":  6,
+                                                       "Flags":  "Property, ReadOnly, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "DestinationPrefix",
+                                                       "Value":  "127.0.0.1/32",
+                                                       "CimType":  14,
+                                                       "Flags":  "Property, ReadOnly, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "InterfaceAlias",
+                                                       "Value":  "Loopback Pseudo-Interface 1",
+                                                       "CimType":  14,
+                                                       "Flags":  "Property, ReadOnly, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "InterfaceIndex",
+                                                       "Value":  1,
+                                                       "CimType":  6,
+                                                       "Flags":  "Property, ReadOnly, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "InterfaceMetric",
+                                                       "Value":  75,
+                                                       "CimType":  6,
+                                                       "Flags":  "Property, ReadOnly, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "NextHop",
+                                                       "Value":  "0.0.0.0",
+                                                       "CimType":  14,
+                                                       "Flags":  "Property, ReadOnly, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "PreferredLifetime",
+                                                       "Value":  "10675199.02:48:05.4775807",
+                                                       "CimType":  13,
+                                                       "Flags":  "Property, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "Protocol",
+                                                       "Value":  2,
+                                                       "CimType":  4,
+                                                       "Flags":  "Property, ReadOnly, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "Publish",
+                                                       "Value":  0,
+                                                       "CimType":  2,
+                                                       "Flags":  "Property, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "State",
+                                                       "Value":  0,
+                                                       "CimType":  2,
+                                                       "Flags":  "Property, ReadOnly, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "Store",
+                                                       "Value":  1,
+                                                       "CimType":  2,
+                                                       "Flags":  "Property, ReadOnly, NotModified",
+                                                       "IsValueModified":  false
+                                                   },
+                                                   {
+                                                       "Name":  "ValidLifetime",
+                                                       "Value":  "10675199.02:48:05.4775807",
+                                                       "CimType":  13,
+                                                       "Flags":  "Property, NotModified",
+                                                       "IsValueModified":  false
+                                                   }
+                                               ],
+                     "CimSystemProperties":  {
+                                                 "Namespace":  "root/standardcimv2",
+                                                 "ServerName":  "ATOMMAN",
+                                                 "ClassName":  "MSFT_NetRoute",
+                                                 "Path":  null
+                                             }
+                 },
+    "SourceAddress":  {
+                          "CimClass":  {
+                                           "CimSuperClassName":  "CIM_IPProtocolEndpoint",
+                                           "CimSuperClass":  {
+                                                                 "CimSuperClassName":  "CIM_ProtocolEndpoint",
+                                                                 "CimSuperClass":  "ROOT/standardcimv2:CIM_ProtocolEndpoint",
+                                                                 "CimClassProperties":  "Caption Description ElementName InstanceID CommunicationStatus DetailedStatus HealthState InstallDate Name OperatingStatus OperationalStatus PrimaryStatus Status StatusDescriptions AvailableRequestedStates EnabledDefault = 2 EnabledState OtherEnabledState RequestedState = 12 TimeOfLastStateChange TransitioningToState = 12 CreationClassName SystemCreationClassName SystemName NameFormat OtherTypeDescription ProtocolIFType = 4096 ProtocolType Address AddressOrigin = 0 AddressType IPv4Address IPv6Address IPVersionSupport PrefixLength SubnetMask",
+                                                                 "CimClassQualifiers":  "UMLPackagePath = \"CIM::Network::ProtocolEndpoints\" locale = 1033",
+                                                                 "CimClassMethods":  "RequestStateChange",
+                                                                 "CimSystemProperties":  "Microsoft.Management.Infrastructure.CimSystemProperties"
+                                                             },
+                                           "CimClassProperties":  [
+                                                                      "Caption",
+                                                                      "Description",
+                                                                      "ElementName",
+                                                                      "InstanceID",
+                                                                      "CommunicationStatus",
+                                                                      "DetailedStatus",
+                                                                      "HealthState",
+                                                                      "InstallDate",
+                                                                      "Name",
+                                                                      "OperatingStatus",
+                                                                      "OperationalStatus",
+                                                                      "PrimaryStatus",
+                                                                      "Status",
+                                                                      "StatusDescriptions",
+                                                                      "AvailableRequestedStates",
+                                                                      "EnabledDefault = 2",
+                                                                      "EnabledState",
+                                                                      "OtherEnabledState",
+                                                                      "RequestedState = 12",
+                                                                      "TimeOfLastStateChange",
+                                                                      "TransitioningToState = 12",
+                                                                      "CreationClassName",
+                                                                      "SystemCreationClassName",
+                                                                      "SystemName",
+                                                                      "NameFormat",
+                                                                      "OtherTypeDescription",
+                                                                      "ProtocolIFType = 4096",
+                                                                      "ProtocolType",
+                                                                      "Address",
+                                                                      "AddressOrigin = 0",
+                                                                      "AddressType",
+                                                                      "IPv4Address",
+                                                                      "IPv6Address",
+                                                                      "IPVersionSupport",
+                                                                      "PrefixLength",
+                                                                      "SubnetMask",
+                                                                      "AddressFamily",
+                                                                      "AddressState",
+                                                                      "InterfaceAlias",
+                                                                      "InterfaceIndex",
+                                                                      "IPAddress",
+                                                                      "PreferredLifetime",
+                                                                      "PrefixOrigin",
+                                                                      "SkipAsSource",
+                                                                      "Store",
+                                                                      "SuffixOrigin",
+                                                                      "Type",
+                                                                      "ValidLifetime"
+                                                                  ],
+                                           "CimClassQualifiers":  [
+                                                                      "UMLPackagePath = \"CIM::Network::ProtocolEndpoints\"",
+                                                                      "ClassVersion = \"1.0.0\"",
+                                                                      "dynamic = True",
+                                                                      "locale = 1033",
+                                                                      "provider = \"nettcpip\""
+                                                                  ],
+                                           "CimClassMethods":  [
+                                                                   "RequestStateChange",
+                                                                   "Create"
+                                                               ],
+                                           "CimSystemProperties":  {
+                                                                       "Namespace":  "root/standardcimv2",
+                                                                       "ServerName":  "ATOMMAN",
+                                                                       "ClassName":  "MSFT_NetIPAddress",
+                                                                       "Path":  null
+                                                                   }
+                                       },
+                          "CimInstanceProperties":  [
+                                                        {
+                                                            "Name":  "Caption",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "Description",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "ElementName",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "InstanceID",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "CommunicationStatus",
+                                                            "Value":  null,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "DetailedStatus",
+                                                            "Value":  null,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "HealthState",
+                                                            "Value":  null,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "InstallDate",
+                                                            "Value":  null,
+                                                            "CimType":  13,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "Name",
+                                                            "Value":  ";\u003cA8:8:8;55;55;55;",
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, Key, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "OperatingStatus",
+                                                            "Value":  null,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "OperationalStatus",
+                                                            "Value":  null,
+                                                            "CimType":  20,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "PrimaryStatus",
+                                                            "Value":  null,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "Status",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "StatusDescriptions",
+                                                            "Value":  null,
+                                                            "CimType":  30,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "AvailableRequestedStates",
+                                                            "Value":  null,
+                                                            "CimType":  20,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "EnabledDefault",
+                                                            "Value":  2,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "EnabledState",
+                                                            "Value":  null,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "OtherEnabledState",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "RequestedState",
+                                                            "Value":  12,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "TimeOfLastStateChange",
+                                                            "Value":  null,
+                                                            "CimType":  13,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "TransitioningToState",
+                                                            "Value":  12,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "CreationClassName",
+                                                            "Value":  "",
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, Key, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "SystemCreationClassName",
+                                                            "Value":  "",
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, Key, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "SystemName",
+                                                            "Value":  "",
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, Key, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "NameFormat",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "OtherTypeDescription",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "ProtocolIFType",
+                                                            "Value":  4096,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "ProtocolType",
+                                                            "Value":  null,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "Address",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "AddressOrigin",
+                                                            "Value":  0,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "AddressType",
+                                                            "Value":  null,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "IPv4Address",
+                                                            "Value":  "127.0.0.1",
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "IPv6Address",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "IPVersionSupport",
+                                                            "Value":  null,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "PrefixLength",
+                                                            "Value":  8,
+                                                            "CimType":  2,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "SubnetMask",
+                                                            "Value":  null,
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, NotModified, NullValue",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "AddressFamily",
+                                                            "Value":  2,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, ReadOnly, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "AddressState",
+                                                            "Value":  4,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, ReadOnly, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "InterfaceAlias",
+                                                            "Value":  "Loopback Pseudo-Interface 1",
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, ReadOnly, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "InterfaceIndex",
+                                                            "Value":  1,
+                                                            "CimType":  6,
+                                                            "Flags":  "Property, ReadOnly, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "IPAddress",
+                                                            "Value":  "127.0.0.1",
+                                                            "CimType":  14,
+                                                            "Flags":  "Property, ReadOnly, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "PreferredLifetime",
+                                                            "Value":  "10675199.02:48:05.4775807",
+                                                            "CimType":  13,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "PrefixOrigin",
+                                                            "Value":  2,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "SkipAsSource",
+                                                            "Value":  false,
+                                                            "CimType":  1,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "Store",
+                                                            "Value":  1,
+                                                            "CimType":  2,
+                                                            "Flags":  "Property, ReadOnly, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "SuffixOrigin",
+                                                            "Value":  2,
+                                                            "CimType":  4,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "Type",
+                                                            "Value":  1,
+                                                            "CimType":  2,
+                                                            "Flags":  "Property, ReadOnly, NotModified",
+                                                            "IsValueModified":  false
+                                                        },
+                                                        {
+                                                            "Name":  "ValidLifetime",
+                                                            "Value":  "10675199.02:48:05.4775807",
+                                                            "CimType":  13,
+                                                            "Flags":  "Property, NotModified",
+                                                            "IsValueModified":  false
+                                                        }
+                                                    ],
+                          "CimSystemProperties":  {
+                                                      "Namespace":  "root/standardcimv2",
+                                                      "ServerName":  "ATOMMAN",
+                                                      "ClassName":  "MSFT_NetIPAddress",
+                                                      "Path":  null
+                                                  }
+                      },
+    "NameResolutionSucceeded":  true,
+    "BasicNameResolution":  [
+                                {
+                                    "NameHost":  "kubernetes.docker.internal",
+                                    "Name":  "1.0.0.127.in-addr.arpa.",
+                                    "Type":  12,
+                                    "CharacterSet":  1,
+                                    "Section":  1,
+                                    "DataLength":  8,
+                                    "TTL":  0,
+                                    "QueryType":  12,
+                                    "Server":  "kubernetes.docker.internal"
+                                }
+                            ],
+    "LLMNRNetbiosRecords":  [
+
+                            ],
+    "DNSOnlyRecords":  [
+                           {
+                               "NameHost":  "localhost",
+                               "Name":  "1.0.0.127.in-addr.arpa",
+                               "Type":  12,
+                               "CharacterSet":  1,
+                               "Section":  1,
+                               "DataLength":  8,
+                               "TTL":  86400,
+                               "QueryType":  12,
+                               "Server":  "localhost"
+                           },
+                           {
+                               "IP6Address":  "::1",
+                               "Name":  "1.0.0.127.in-addr.arpa",
+                               "Type":  28,
+                               "CharacterSet":  1,
+                               "Section":  3,
+                               "DataLength":  16,
+                               "TTL":  86400,
+                               "Address":  "::1",
+                               "IPAddress":  "::1",
+                               "QueryType":  28
+                           },
+                           {
+                               "IP4Address":  "127.0.0.1",
+                               "Name":  "1.0.0.127.in-addr.arpa",
+                               "Type":  1,
+                               "CharacterSet":  1,
+                               "Section":  3,
+                               "DataLength":  4,
+                               "TTL":  86400,
+                               "Address":  "127.0.0.1",
+                               "IPAddress":  "127.0.0.1",
+                               "QueryType":  1
+                           }
+                       ],
+    "AllNameResolutionResults":  [
+                                     {
+                                         "IP6Address":  "::1",
+                                         "Name":  "1.0.0.127.in-addr.arpa",
+                                         "Type":  28,
+                                         "CharacterSet":  1,
+                                         "Section":  3,
+                                         "DataLength":  16,
+                                         "TTL":  86400,
+                                         "Address":  "::1",
+                                         "IPAddress":  "::1",
+                                         "QueryType":  28
+                                     },
+                                     {
+                                         "IP4Address":  "127.0.0.1",
+                                         "Name":  "1.0.0.127.in-addr.arpa",
+                                         "Type":  1,
+                                         "CharacterSet":  1,
+                                         "Section":  3,
+                                         "DataLength":  4,
+                                         "TTL":  86400,
+                                         "Address":  "127.0.0.1",
+                                         "IPAddress":  "127.0.0.1",
+                                         "QueryType":  1
+                                     },
+                                     {
+                                         "NameHost":  "kubernetes.docker.internal",
+                                         "Name":  "1.0.0.127.in-addr.arpa.",
+                                         "Type":  12,
+                                         "CharacterSet":  1,
+                                         "Section":  1,
+                                         "DataLength":  8,
+                                         "TTL":  0,
+                                         "QueryType":  12,
+                                         "Server":  "kubernetes.docker.internal"
+                                     }
+                                 ],
+    "IsAdmin":  false,
+    "NetworkIsolationContext":  "Loopback",
+    "MatchingIPsecRules":  null
+}

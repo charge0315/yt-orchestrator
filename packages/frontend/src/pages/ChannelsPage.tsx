@@ -67,7 +67,8 @@ function ChannelsPage() {
           acc.push({
             channelTitle: video.channelTitle,
             thumbnail: video.thumbnail,
-            videoId: video.videoId
+            videoId: video.videoId,
+            channelId: video.channelId
           })
         }
         return acc
