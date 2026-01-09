@@ -26,6 +26,10 @@ const YOUTUBE_MUSIC_CHANNEL_IDS = [
   'UC-9-kyTW8ZkZNDHQJ6FgpwQ', // YouTube Music公式
   'UCSJ4gkVC6NrvII8umztf0Ow', // Lofi Girl
   'UCfM3zsQsOnfWNUppiycmBuw', // Music Lab
+  // 追加（プロキシ取得で確認済み）
+  'UCXIyz409s7bNWVcM-vjfdVA', // Majestic Casual
+  'UCJ6td3C9QlPO9O_J5dF4ZzA', // Monstercat (Monstercat Uncaged)
+  'UC_aEa8K-EOJ3D6gOs7HcyNg', // NoCopyrightSounds (NCS)
 ];
 
 // ランタイムで追加したいチャンネルIDを環境変数で上書き可能にする。
