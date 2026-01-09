@@ -28,6 +28,17 @@ const YOUTUBE_MUSIC_CHANNEL_IDS = [
   'UCfM3zsQsOnfWNUppiycmBuw', // Music Lab
 ];
 
+// 追加の判定用: チャンネル名ベースで音楽系とみなすための代表的なチャンネル名
+const YOUTUBE_MUSIC_CHANNEL_TITLES = [
+  'mr suicide sheep',
+  'majestic casual',
+  'monstercat',
+  'nocopyrightsounds',
+  'ncs',
+  'chillhop music',
+  'vevo',
+];
+
 /**
  * YouTube Data API v3 へのアクセスを提供するサービス。
  * アクセストークンを受け取り、プレイリスト/チャンネル/動画などの取得を行います。
@@ -159,6 +170,17 @@ export class YouTubeApiService {
       if (!items || items.length === 0) {
         this.setCache(cacheKey, false);
         return false;
+      }
+
+      // チャンネル名ベースの簡易判定（代表的な音楽チャンネル名を含む場合に true）
+      const firstTitle = (items[0]?.snippet?.channelTitle || '').toString().toLowerCase();
+      if (firstTitle) {
+        for (const t of YOUTUBE_MUSIC_CHANNEL_TITLES) {
+          if (firstTitle.includes(t)) {
+            this.setCache(cacheKey, true);
+            return true;
+          }
+        }
       }
 
       // 「- Topic」を含むチャンネル名があればtrue
